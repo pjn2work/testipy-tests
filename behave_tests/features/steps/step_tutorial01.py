@@ -11,7 +11,7 @@ def step_impl1(context: Context, **kwargs):
 def step_impl2(context: Context, v: str):
     context.data = "Pedro"
     print(">>>>> when", v)
-    assert int(v) > 0, f"{V} is not > 0"
+    assert int(v) > 0, f"{v} is not > 0"
 
 
 @then('behave will test it for us.')

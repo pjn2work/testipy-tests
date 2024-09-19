@@ -26,19 +26,41 @@ _STATUS = {
     5: enums_data.STATE_FAILED,
 }
 
-class TestipyReporter:
+
+class TestipyContext:
     rm: ReportManager = None
-    last_package_details: PackageDetails = None
-_reporter = TestipyReporter()
+    last_package: PackageDetails = None
+    packages: dict[str, PackageAttr] = {}
+
+    def get_suite_attr_by_filename(self, filename: str) -> SuiteAttr:
+        package_name, suite_name, _ = get_package_and_suite_by_filename(filename)
+        return self.packages[package_name].get_suite_by_name(suite_name)
+
+_testipy_context = TestipyContext()
 
 
-def get_rm(testipy_init_args: str = "-r junit -r excel -r log -r web -rid 1") -> ReportManager:
-    if _reporter.rm is None:
+def get_rm(testipy_init_args: str = "-r junit -r excel -r log -rid 1") -> ReportManager:
+    if _testipy_context.rm is None:
         ap = ArgsParser.from_str(testipy_init_args)
         sa = ParseStartArguments(ap).get_start_arguments()
 
-        _reporter.rm = build_report_manager_with_reporters(ap, sa)
-    return _reporter.rm
+        _testipy_context.rm = build_report_manager_with_reporters(ap, sa)
+    return _testipy_context.rm
+
+
+def get_package_and_suite_by_filename(filename: str) -> tuple[str, str, str]:
+    package_name = str(os.path.dirname(filename).replace("/", "."))
+    filename = os.path.basename(filename)
+    suite_name = os.path.splitext(filename)[0]
+    return package_name, suite_name, filename
+
+
+def get_status(status: Status | int) -> str:
+    if isinstance(status, int):
+        return _STATUS.get(status, enums_data.STATE_FAILED_KNOWN_BUG)
+    if isinstance(status, Status):
+        return _STATUS.get(status.value, enums_data.STATE_FAILED_KNOWN_BUG)
+    raise ValueError(f"Unexpected status value: {status}")
 
 
 def tear_up(context: Context):
@@ -46,8 +68,9 @@ def tear_up(context: Context):
         tma = sat.get_test_method_by_name(test_name)
         if tma is None:
             tma = TestMethodAttr(sat, test_name)
-            tma.tags = scenario.tags
+            tma.tags = [tag for tag in scenario.tags if not tag.startswith("tc:")]
             tma.method_obj = scenario
+            tma.test_number = " ".join([tag[3:] for tag in scenario.tags if tag.startswith("tc:")])
         return tma
 
     def _should_run(
@@ -58,9 +81,7 @@ def tear_up(context: Context):
     packages: dict[str, PackageAttr] = {}
 
     for feature in _should_run(context, iterator=context._runner.features):
-        package_name = str(os.path.dirname(feature.filename).replace("/", "."))
-        filename = os.path.basename(feature.filename)
-        suite_name = os.path.splitext(filename)[0]
+        package_name, suite_name, filename = get_package_and_suite_by_filename(feature.filename)
 
         pa = packages.get(package_name)
         if pa is None:
@@ -93,16 +114,13 @@ def tear_up(context: Context):
 
     print(show_test_structure(context.testipy_selected_tests.values()))
 
-
 def tear_down(context: Context):
-    get_rm().end_package(_reporter.last_package_details)
+    get_rm().end_package(_testipy_context.last_package)
     get_rm()._teardown_("")
 
 
 def start_feature(context: Context, feature: Feature):
-    package_name = str(os.path.dirname(feature.filename).replace("/", "."))
-    filename = os.path.basename(feature.filename)
-    suite_name = os.path.splitext(filename)[0]
+    package_name, suite_name, _ = get_package_and_suite_by_filename(feature.filename)
 
     tests: dict[str, PackageAttr] = context.testipy_selected_tests
     pat: PackageAttr = tests.get(package_name)
@@ -115,7 +133,7 @@ def start_feature(context: Context, feature: Feature):
     elif pd.name != package_name:
         get_rm().end_package(pd)
         context.testipy_current_package = pd = get_rm().startPackage(pat)
-    _reporter.last_package_details = pd
+    _testipy_context.last_package = pd
 
     sat: SuiteAttr = pat.get_suite_by_name(suite_name)
     if sat is None:
@@ -134,24 +152,22 @@ def start_scenario(context: Context, scenario: Scenario | ScenarioOutline):
     if tma is None:
         raise ValueError(f"scenario {scenario.name} not found!")
 
-    td: TestDetails = get_rm().startTest(sd.set_current_test_method_attr(tma))
+    names = tma.name.split(" -- ")
+    if len(names) == 2:
+        test_name, usecase_name = names
+    else:
+        test_name, usecase_name = tma.name, ""
+
+    td: TestDetails = get_rm().startTest(sd.set_current_test_method_attr(tma), test_name=test_name, usecase=usecase_name)
     context.testipy_test_details = scenario.testipy_test_details = td
 
 def end_scenario(context: Context, scenario: Scenario | ScenarioOutline):
     endTest(get_rm(), scenario.testipy_test_details)
 
 
-def get_status(status: Status | int) -> str:
-    if isinstance(status, int):
-        return _STATUS.get(status, enums_data.STATE_FAILED_KNOWN_BUG)
-    if isinstance(status, Status):
-        return _STATUS.get(status.value, enums_data.STATE_FAILED_KNOWN_BUG)
-    raise ValueError(f"Unexpected status value: {status}")
-
-
 def end_step(context: Context, step: Step):
     get_rm().test_step(
-        current_test=context.testipy_test_details,
+        current_test=context.scenario.testipy_test_details,
         state=get_status(step.status),
         reason_of_state=str(step.exception) if step.exception else "ok",
         description=f"{step.keyword} {step.name}",

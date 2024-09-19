@@ -3,10 +3,12 @@ Feature: Showing off behave (tutorial01)
   Background:
       Given we have behave installed
 
+  @tc:200555
   Scenario: Simple test
     Then behave will test it for us.
 
   @my_scenario_tag_01
+  @tc:201728
   Scenario Outline: Run D2 for: <Index> and <Desc>
       When we implement a test 5
       Then behave will test it for us! <Index> and <Desc>
