@@ -23,13 +23,8 @@ TESTIPY_ARGS = "-r junit -r excel -r log -rid 1"
 class TestipyContext:
     rm: ReportManager = None
     last_package: PackageDetails = None
-    packages: dict[str, PackageAttr] = {}
     tear_up_executed: bool = False
     tear_down_executed: bool = False
-
-    def get_suite_attr_by_filename(self, filename: str) -> SuiteAttr:
-        package_name, suite_name, _ = get_package_and_suite_by_filename(filename)
-        return self.packages[package_name].get_suite_by_name(suite_name)
 
 _testipy_context = TestipyContext()
 
