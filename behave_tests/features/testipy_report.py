@@ -26,11 +26,15 @@ _STATUS = {
     5: enums_data.STATE_FAILED,
 }
 
+TESTIPY_ARGS = "-r junit -r excel -r log -rid 1"
+
 
 class TestipyContext:
     rm: ReportManager = None
     last_package: PackageDetails = None
     packages: dict[str, PackageAttr] = {}
+    tear_up_executed: bool = False
+    tear_down_executed: bool = False
 
     def get_suite_attr_by_filename(self, filename: str) -> SuiteAttr:
         package_name, suite_name, _ = get_package_and_suite_by_filename(filename)
@@ -39,7 +43,7 @@ class TestipyContext:
 _testipy_context = TestipyContext()
 
 
-def get_rm(testipy_init_args: str = "-r junit -r excel -r log -rid 1") -> ReportManager:
+def get_rm(testipy_init_args: str = TESTIPY_ARGS) -> ReportManager:
     if _testipy_context.rm is None:
         ap = ArgsParser.from_str(testipy_init_args)
         sa = ParseStartArguments(ap).get_start_arguments()
@@ -64,6 +68,9 @@ def get_status(status: Status | int) -> str:
 
 
 def tear_up(context: Context):
+    if _testipy_context.tear_up_executed:
+        return
+
     def _create_test_attr(sat: SuiteAttr, test_name: str, scenario):
         tma = sat.get_test_method_by_name(test_name)
         if tma is None:
@@ -111,12 +118,17 @@ def tear_up(context: Context):
     context.testipy_current_package = None
 
     get_rm()._startup_(list(packages.values()))
+    _testipy_context.tear_up_executed = True
 
     print(show_test_structure(context.testipy_selected_tests.values()))
 
 def tear_down(context: Context):
+    if _testipy_context.tear_down_executed:
+        return
+
     get_rm().end_package(_testipy_context.last_package)
     get_rm()._teardown_("")
+    _testipy_context.tear_down_executed = True
 
 
 def start_feature(context: Context, feature: Feature):
@@ -136,6 +148,7 @@ def start_feature(context: Context, feature: Feature):
     _testipy_context.last_package = pd
 
     sat: SuiteAttr = pat.get_suite_by_name(suite_name)
+    print(sat.name, "<<< <<< <  ")
     if sat is None:
         raise ValueError(f"suite {suite_name} not found!")
 
