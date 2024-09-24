@@ -4,7 +4,7 @@ from behave.model import Feature, Scenario, ScenarioOutline, Step, Status
 from behave.runner import Context
 
 # Import all testipy methods here
-from testipy.configs import enums_data
+from testipy.configs.enums_data import STATE_SKIPPED, STATE_PASSED, STATE_FAILED, STATE_FAILED_KNOWN_BUG
 from testipy.lib_modules.args_parser import ArgsParser
 from testipy.lib_modules.start_arguments import ParseStartArguments
 from testipy.engine.models import (
@@ -16,15 +16,6 @@ from testipy.reporter import SuiteDetails, PackageDetails, TestDetails
 from testipy.reporter.report_manager import ReportManager, build_report_manager_with_reporters
 from testipy.helpers.data_driven_testing import endTest
 
-
-_STATUS = {
-    0: enums_data.STATE_SKIPPED,
-    1: enums_data.STATE_SKIPPED,
-    2: enums_data.STATE_PASSED,
-    3: enums_data.STATE_FAILED,
-    4: enums_data.STATE_FAILED,
-    5: enums_data.STATE_FAILED,
-}
 
 TESTIPY_ARGS = "-r junit -r excel -r log -rid 1"
 
@@ -59,12 +50,30 @@ def get_package_and_suite_by_filename(filename: str) -> tuple[str, str, str]:
     return package_name, suite_name, filename
 
 
-def get_status(status: Status | int) -> str:
-    if isinstance(status, int):
-        return _STATUS.get(status, enums_data.STATE_FAILED_KNOWN_BUG)
-    if isinstance(status, Status):
-        return _STATUS.get(status.value, enums_data.STATE_FAILED_KNOWN_BUG)
-    raise ValueError(f"Unexpected status value: {status}")
+def start_independent_test(context: Context, test_name: str, suite_name: str="", package_name: str="") -> TestDetails:
+    rm = get_rm()
+
+    pd = rm.startPackage(name=package_name) if package_name else context.testipy_current_package
+    sd = rm.startSuite(pd, name=suite_name) if suite_name else context.testipy_current_suite
+    td = rm.startTest(sd, test_name=test_name)
+
+    context.testipy_independent_test = dict(
+        pd=pd, sd=sd, td=td,
+        new_package=True if package_name else False, new_suite=True if suite_name else False
+    )
+    
+    return td
+
+def end_independent_test(context: Context) -> None:
+    _test = context.testipy_independent_test
+    rm = get_rm()
+    pd, sd, td, new_package, new_suite = _test['pd'], _test['sd'], _test['td'], _test['new_package'], _test['new_suite']
+
+    endTest(rm, td)
+    if new_suite or new_package:
+        rm.end_suite(sd)
+    if new_package:
+        rm.end_package(pd)
 
 
 def tear_up(context: Context):
@@ -153,14 +162,14 @@ def start_feature(context: Context, feature: Feature):
         raise ValueError(f"suite {suite_name} not found!")
 
     sd: SuiteDetails = get_rm().startSuite(pd, sat)
-    context.testipy_suite_details = feature.testipy_suite_details = sd
+    context.testipy_current_suite = feature.testipy_current_suite = sd
 
 def end_feature(context: Context, feature: Feature):
-    get_rm().end_suite(feature.testipy_suite_details)
+    get_rm().end_suite(feature.testipy_current_suite)
 
 
 def start_scenario(context: Context, scenario: Scenario | ScenarioOutline):
-    sd: SuiteDetails = scenario.feature.testipy_suite_details
+    sd: SuiteDetails = scenario.feature.testipy_current_suite
     tma: TestMethodAttr = sd.suite_attr.get_test_method_by_name(scenario.name)
     if tma is None:
         raise ValueError(f"scenario {scenario.name} not found!")
@@ -172,16 +181,31 @@ def start_scenario(context: Context, scenario: Scenario | ScenarioOutline):
         test_name, usecase_name = tma.name, ""
 
     td: TestDetails = get_rm().startTest(sd.set_current_test_method_attr(tma), test_name=test_name, usecase=usecase_name)
-    context.testipy_test_details = scenario.testipy_test_details = td
+    context.testipy_current_test = scenario.testipy_current_test = td
 
 def end_scenario(context: Context, scenario: Scenario | ScenarioOutline):
-    endTest(get_rm(), scenario.testipy_test_details)
+    endTest(get_rm(), scenario.testipy_current_test)
 
 
 def end_step(context: Context, step: Step):
+    def _get_status(status: Status | int) -> str:
+        _STATUS = {
+            0: STATE_SKIPPED,
+            1: STATE_SKIPPED,
+            2: STATE_PASSED,
+            3: STATE_FAILED,
+            4: STATE_FAILED,
+            5: STATE_FAILED,
+        }
+        if isinstance(status, int):
+            return _STATUS.get(status, STATE_FAILED_KNOWN_BUG)
+        if isinstance(status, Status):
+            return _STATUS.get(status.value, STATE_FAILED_KNOWN_BUG)
+        raise ValueError(f"Unexpected status value: {status}")
+
     get_rm().test_step(
-        current_test=context.scenario.testipy_test_details,
-        state=get_status(step.status),
+        current_test=context.scenario.testipy_current_test,
+        state=_get_status(step.status),
         reason_of_state=str(step.exception) if step.exception else "ok",
         description=f"{step.keyword} {step.name}",
         exc_value=step.exception
