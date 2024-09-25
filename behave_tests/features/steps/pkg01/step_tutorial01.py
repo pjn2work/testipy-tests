@@ -1,5 +1,6 @@
 from behave import given, when, then
 from behave.runner import Context
+from behave_tests.features.testipy_report import get_rm
 
 
 @given('we have behave installed')
@@ -24,4 +25,7 @@ def step_impl3(context: Context, index: str, desc: str):
     print(context.data)
     print(">>>>> then", index, desc)
     index = int(index)
+
+    get_rm().test_info(context.testipy_current_test, f"This test will fail if index >= 5. {index=}")
+
     assert index<5, f"{index} < 5 failed"

@@ -17,7 +17,8 @@ from testipy.reporter.report_manager import ReportManager, build_report_manager_
 from testipy.helpers.data_driven_testing import endTest
 
 
-TESTIPY_ARGS = "-r junit -r excel -r log -rid 1"
+BASE_FOLDER = os.path.dirname(__file__)
+TESTIPY_ARGS = f"-tf {BASE_FOLDER} -r junit -r excel -r log -r web -rid 1"
 
 
 class TestipyContext:
@@ -48,8 +49,8 @@ def get_package_and_suite_by_filename(filename: str) -> tuple[str, str, str]:
 def start_independent_test(context: Context, test_name: str, suite_name: str="", package_name: str="") -> TestDetails:
     rm = get_rm()
 
-    pd = rm.startPackage(name=package_name) if package_name else context.testipy_current_package
-    sd = rm.startSuite(pd, name=suite_name) if suite_name else context.testipy_current_suite
+    pd = rm.startPackage(name=package_name) if package_name else getattr(context, "testipy_current_package")
+    sd = rm.startSuite(pd, name=suite_name) if suite_name else getattr(context, "testipy_current_suite")
     td = rm.startTest(sd, test_name=test_name)
 
     context.testipy_independent_test = dict(
@@ -69,6 +70,8 @@ def end_independent_test(context: Context) -> None:
         rm.end_suite(sd)
     if new_package:
         rm.end_package(pd)
+
+    context.testipy_independent_test = None
 
 
 def tear_up(context: Context):
@@ -152,7 +155,6 @@ def start_feature(context: Context, feature: Feature):
     _testipy_context.last_package = pd
 
     sat: SuiteAttr = pat.get_suite_by_name(suite_name)
-    print(sat.name, "<<< <<< <  ")
     if sat is None:
         raise ValueError(f"suite {suite_name} not found!")
 
@@ -179,7 +181,11 @@ def start_scenario(context: Context, scenario: Scenario | ScenarioOutline):
     context.testipy_current_test = scenario.testipy_current_test = td
 
 def end_scenario(context: Context, scenario: Scenario | ScenarioOutline):
-    endTest(get_rm(), scenario.testipy_current_test)
+    current_test: TestDetails = scenario.testipy_current_test
+
+    _log_messages_to_test(context, current_test)
+
+    endTest(get_rm(), current_test)
 
 
 def end_step(context: Context, step: Step):
@@ -205,3 +211,18 @@ def end_step(context: Context, step: Step):
         description=f"{step.keyword} {step.name}",
         exc_value=step.exception
     )
+
+
+def _log_messages_to_test(context: Context, current_test: TestDetails):
+    # Access captured output
+    stdout_output = context.stdout.getvalue()
+    stderr_output = context.stderr.getvalue()
+    log_output = context.log_stream.getvalue()
+
+    rm: ReportManager = get_rm()
+    if stdout_output:
+        rm.test_info(current_test, f"stdout:\n{stdout_output}", level="INFO")
+    if stderr_output:
+        rm.test_info(current_test, f"stderr:\n{stderr_output}", level="ERROR")
+    if log_output:
+        rm.test_info(current_test, f"logging:\n{log_output}", level="DEBUG")
