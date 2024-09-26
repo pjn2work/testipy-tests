@@ -16,4 +16,5 @@ Scenario: Log messages
 
 Scenario: Start independent test
     When this test is running
-    Then a new test is created
+    Then a new test manually created is created
+    And a new test manually created is created but not ended
