@@ -30,6 +30,6 @@ def test_is_running(context: Context):
 
 @then('a new test is created')
 def create_new_test(context: Context):
-    td = start_independent_test(context, "test_07")
+    td = start_independent_test(context, "manually created")
     get_rm().test_step(td, state=STATE_PASSED, reason_of_state="Save screenshot", take_screenshot=True)
     end_independent_test(context)
