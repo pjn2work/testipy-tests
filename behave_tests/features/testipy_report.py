@@ -288,7 +288,6 @@ def _call_env_after_all(context: Context):
 
 def start_independent_test(context: Context, test_name: str, usecase: str = "") -> TestDetails:
     sd: SuiteDetails = _testipy_context.get_current_suite(context)
-
     test_attr: TestMethodAttr = _get_test_attr_by_name(sd.suite_attr, test_name)
     td: TestDetails = get_rm().startTest(sd, test_attr, usecase=usecase)
 
