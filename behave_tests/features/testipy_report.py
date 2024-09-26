@@ -243,21 +243,34 @@ def _call_env_before_all(context: Context, file_path: str):
     file_path = os.path.join(file_path, file_name)
 
     pd: PackageDetails = _testipy_context.get_current_package()
-    sat: SuiteAttr = _get_suite_attr_by_name(pd.package_attr, "package setup", file_name)
+    sat: SuiteAttr = _get_suite_attr_by_name(pd.package_attr, "package_setup", file_name)
     sd: SuiteDetails = get_rm().startSuite(pd, sat)
 
     _testipy_context.testipy_env_py_suite = context.testipy_current_suite = sd
 
     _testipy_context.testipy_env_py = module = load_module(file_path, raise_on_error=False)
     if module is not None and hasattr(module, "before_all"):
-        module.before_all(context)
+        td = start_independent_test(context, test_name="Before All")
+        try:
+            module.before_all(context, get_rm(), td)
+            end_independent_test(context)
+        except Exception as exc:
+            get_rm().test_step(td, state=STATE_FAILED, reason_of_state=str(exc), description=f"{file_name} before_all call", exc_value=exc)
+            end_independent_test(context)
+            raise RuntimeError(f"Failed to call {file_path} before_all.\n{exc}") from exc
+
 
 def _call_env_after_all(context: Context):
     context.testipy_current_suite = _testipy_context.get_env_py_suite()
 
     module = _testipy_context.get_env_py_module()
     if module is not None and hasattr(module, "after_all"):
-        module.after_all(context)
+        td = start_independent_test(context, test_name="After All")
+        try:
+            module.after_all(context, get_rm(), td)
+        except Exception as exc:
+            get_rm().test_step(td, state=STATE_FAILED, reason_of_state=str(exc), description="env.py before_all call", exc_value=exc)
+        end_independent_test(context)
 
     get_rm().end_suite(_testipy_context.get_env_py_suite())
 

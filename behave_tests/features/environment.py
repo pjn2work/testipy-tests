@@ -6,6 +6,7 @@ from behave import fixture, use_fixture
 from behave.model import Feature, Scenario, ScenarioOutline, Tag, Step
 from behave.runner import Context
 
+from behave_tests.features.common import get_logger, set_up_logging
 from behave_tests.features.testipy_report import (
     tear_up,
     tear_down,
@@ -19,6 +20,7 @@ from behave_tests.features.testipy_report import (
 
 def before_all(context: Context):
     tear_up(context)
+    set_up_logging(context)
 
 def after_all(context: Context):
     use_fixture(capture_logs, context)
@@ -84,7 +86,7 @@ def _capture_output():
 
     # Set up logging to capture to a stream
     log_handler = logging.StreamHandler(log_stream)
-    logger = logging.getLogger("TestiPy_demo")
+    logger = get_logger()
     logger.addHandler(log_handler)
 
     return stdout, stderr, log_stream, stdout_redirect, stderr_redirect, log_handler, logger

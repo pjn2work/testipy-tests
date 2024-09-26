@@ -1,9 +1,9 @@
-import logging
 import sys
 
 from behave import step, when, then
 from behave.runner import Context
 
+from behave_tests.features.common import get_logger
 from behave_tests.features.testipy_report import start_independent_test, end_independent_test, get_rm, STATE_PASSED
 
 
@@ -19,8 +19,7 @@ def send_to_stderr(context: Context):
 
 @step('log message to logger')
 def log_message(context: Context):
-    log = logging.getLogger("TestiPy_demo")
-    log.info(">>>>> sent to log")
+    get_logger().info(">>>>> sent to log")
 
 
 @when('this test is running')
