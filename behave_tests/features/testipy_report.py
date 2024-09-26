@@ -1,7 +1,6 @@
 import os
 import importlib.util
 
-
 from behave.model import Feature, Scenario, ScenarioOutline, Step, Status
 from behave.runner import Context
 
@@ -88,9 +87,9 @@ def tear_up(context: Context):
         tma = sat.get_test_method_by_name(test_name)
         if tma is None:
             tma = TestMethodAttr(sat, test_name, comment=comment)
-            tma.tags = [tag for tag in scenario.tags if not tag.startswith("tc:")]
+            tma.tags = {str(tag) for tag in scenario.tags if not str(tag).startswith("tc:")}
             tma.method_obj = scenario
-            tma.test_number = " ".join([tag[3:] for tag in scenario.tags if tag.startswith("tc:")])
+            tma.test_number = " ".join([str(tag)[3:] for tag in scenario.tags if str(tag).startswith("tc:")])
         return tma
 
     def _should_run(
@@ -111,7 +110,7 @@ def tear_up(context: Context):
         sat = pa.get_suite_by_name(suite_name)
         if sat is None:
             sat = SuiteAttr(pa, filename, suite_name, comment="\n".join(feature.description))
-            sat.tags = feature.tags
+            sat.tags = {str(tag) for tag in feature.tags}
             sat.suite_obj = feature
 
         for scenario in _should_run(context, iterator=feature.scenarios):
