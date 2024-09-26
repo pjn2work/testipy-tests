@@ -19,7 +19,7 @@ from testipy.helpers.data_driven_testing import endTest
 
 
 BASE_FOLDER = os.path.dirname(__file__)
-TESTIPY_ARGS = f"-tf {BASE_FOLDER} -r junit -r excel -r log -r web -rid 1"
+TESTIPY_ARGS = f"-tf {BASE_FOLDER} -r junit -r excel -r web -rid 1"
 
 
 class TestipyContext:
@@ -169,8 +169,11 @@ def start_feature(context: Context, feature: Feature):
 
 def end_feature(context: Context, feature: Feature):
     sd: SuiteDetails = _testipy_context.get_current_suite(context)
+
     get_rm().end_suite(sd)
     context.testipy_current_suite = None
+
+    close_any_unclosed_tests(context)
 
 
 def start_scenario(context: Context, scenario: Scenario | ScenarioOutline):
@@ -195,6 +198,8 @@ def end_scenario(context: Context, scenario: Scenario | ScenarioOutline):
 
     endTest(get_rm(), current_test)
     context.testipy_current_test = None
+
+    close_any_unclosed_tests(context)
 
 
 def end_step(context: Context, step: Step):
@@ -249,14 +254,16 @@ def _call_env_before_all(context: Context, file_path: str):
 
     _testipy_context.testipy_env_py = module = load_module(file_path, raise_on_error=False)
     if module is not None and hasattr(module, "before_all"):
-        td = start_independent_test(context, test_name="Before All")
+        td = start_independent_test(context, "Before All")
         try:
             module.before_all(context, get_rm(), td)
-            end_independent_test(context)
         except Exception as exc:
             get_rm().test_step(td, state=STATE_FAILED, reason_of_state=str(exc), description=f"{file_name} before_all call", exc_value=exc)
-            end_independent_test(context)
+            end_independent_test(td)
             raise RuntimeError(f"Failed to call {file_path} before_all.\n{exc}") from exc
+
+        end_independent_test(td)
+        close_any_unclosed_tests(context)
 
 
 def _call_env_after_all(context: Context):
@@ -264,12 +271,14 @@ def _call_env_after_all(context: Context):
 
     module = _testipy_context.get_env_py_module()
     if module is not None and hasattr(module, "after_all"):
-        td = start_independent_test(context, test_name="After All")
+        td = start_independent_test(context, "After All")
         try:
             module.after_all(context, get_rm(), td)
         except Exception as exc:
             get_rm().test_step(td, state=STATE_FAILED, reason_of_state=str(exc), description="env.py before_all call", exc_value=exc)
-        end_independent_test(context)
+
+        end_independent_test(td)
+        close_any_unclosed_tests(context)
 
     get_rm().end_suite(_testipy_context.get_env_py_suite())
 
@@ -283,15 +292,17 @@ def start_independent_test(context: Context, test_name: str, usecase: str = "") 
     test_attr: TestMethodAttr = _get_test_attr_by_name(sd.suite_attr, test_name)
     td: TestDetails = get_rm().startTest(sd, test_attr, usecase=usecase)
 
-    context.testipy_independent_test = td
-
     return td
 
+def end_independent_test(td: TestDetails) -> None:
+    endTest(get_rm(), td)
 
-def end_independent_test(context: Context) -> None:
-    endTest(get_rm(), _testipy_context.get_current_independent_test(context))
 
-    context.testipy_independent_test = None
+def close_any_unclosed_tests(context: Context):
+    sd: SuiteDetails = _testipy_context.get_current_suite(context)
+    for tests in sd.test_manager._tests_running_by_meid.values():
+        for test in tests:
+            endTest(get_rm(), test, end_reason="auto-closed")
 
 
 def _get_suite_attr_by_name(package_attr: PackageAttr, suite_name: str, suite_filename: str = "") -> SuiteAttr:
