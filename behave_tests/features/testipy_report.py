@@ -19,7 +19,7 @@ from testipy.helpers.data_driven_testing import endTest
 
 
 BASE_FOLDER = os.path.dirname(__file__)
-TESTIPY_ARGS = f"-tf {BASE_FOLDER} -r junit -r excel -r web -rid 1"
+TESTIPY_ARGS = f"-tf {BASE_FOLDER} -r junit -r excel -r log -r web -rid 1"
 
 
 class TestipyContext:
@@ -293,6 +293,7 @@ def start_independent_test(context: Context, test_name: str, usecase: str = "") 
     td: TestDetails = get_rm().startTest(sd, test_attr, usecase=usecase)
 
     return td
+
 
 def end_independent_test(td: TestDetails) -> None:
     endTest(get_rm(), td)
