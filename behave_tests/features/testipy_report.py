@@ -84,10 +84,10 @@ def tear_up(context: Context):
     if _testipy_context.tear_up_executed:
         return
 
-    def _create_test_attr(sat: SuiteAttr, test_name: str, scenario):
+    def _create_test_attr(sat: SuiteAttr, test_name: str, scenario, comment: str):
         tma = sat.get_test_method_by_name(test_name)
         if tma is None:
-            tma = TestMethodAttr(sat, test_name)
+            tma = TestMethodAttr(sat, test_name, comment=comment)
             tma.tags = [tag for tag in scenario.tags if not tag.startswith("tc:")]
             tma.method_obj = scenario
             tma.test_number = " ".join([tag[3:] for tag in scenario.tags if tag.startswith("tc:")])
@@ -110,16 +110,16 @@ def tear_up(context: Context):
 
         sat = pa.get_suite_by_name(suite_name)
         if sat is None:
-            sat = SuiteAttr(pa, filename, suite_name)
+            sat = SuiteAttr(pa, filename, suite_name, comment="\n".join(feature.description))
             sat.tags = feature.tags
             sat.suite_obj = feature
 
         for scenario in _should_run(context, iterator=feature.scenarios):
             if isinstance(scenario, ScenarioOutline):
                 for example in _should_run(context, iterator=scenario.scenarios):
-                    tma = _create_test_attr(sat, example.name, example)
+                    tma = _create_test_attr(sat, example.name, example, comment="\n".join(scenario.description))
             else:
-                tma = _create_test_attr(sat, scenario.name, scenario)
+                tma = _create_test_attr(sat, scenario.name, scenario, comment="\n".join(scenario.description))
 
     mark_packages_suites_methods_ids(list(packages.values()))
 
@@ -260,6 +260,9 @@ def _call_env_after_all(context: Context):
         module.after_all(context)
 
     get_rm().end_suite(_testipy_context.get_env_py_suite())
+
+    _testipy_context.testipy_env_py = None
+    _testipy_context.testipy_env_py_suite = None
 
 
 def start_independent_test(context: Context, test_name: str, usecase: str = "") -> TestDetails:

@@ -21,10 +21,12 @@ def before_all(context: Context):
     tear_up(context)
 
 def after_all(context: Context):
+    use_fixture(capture_logs, context)
     tear_down(context)
 
 
 def before_feature(context: Context, feature: Feature):
+    use_fixture(capture_logs, context)
     start_feature(context, feature)
 
 def after_feature(context: Context, feature: Feature):
