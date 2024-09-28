@@ -432,5 +432,5 @@ def load_module(file_path: str, raise_on_error: bool = True) -> object:
     return None
 
 
-def load_steps_from_folder(file_path: str) -> list:
-    import_steps_modules(file_path)
+def load_steps_from_folder(file_path: str):
+    import_steps_modules(os.path.join(file_path, "_steps"))

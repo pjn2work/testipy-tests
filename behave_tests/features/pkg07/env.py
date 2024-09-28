@@ -10,4 +10,4 @@ def before_all(context: Context):
 
 def after_all(context: Context):
     with TestipyStep(context, "after_all", reason_of_state="Close package"):
-        assert context.var07_0 == "TUTORIAL_071"
+        assert context.var07_0 == "TUTORIAL_07"
