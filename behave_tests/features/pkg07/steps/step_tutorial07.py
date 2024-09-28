@@ -4,7 +4,7 @@ from behave import step, when, then
 from behave.runner import Context
 
 from behave_tests.features.common import get_logger
-from behave_tests.features.testipy_report import start_independent_test, end_independent_test, get_rm, STATE_PASSED
+from behave_tests.features.testipy_report import start_independent_test, end_independent_test
 
 
 @step('send message to stdout')
@@ -30,11 +30,22 @@ def test_is_running(context: Context):
 @then('a new test {test_name} is created')
 def create_new_test(context: Context, test_name: str):
     td = start_independent_test(context, test_name, usecase="manually closed")
-    get_rm().test_step(td, state=STATE_PASSED, reason_of_state="Save screenshot", take_screenshot=True)
+    context.testipy_reporting.test_step(context, "isolated test step 1", reason_of_state="Save screenshot", take_screenshot=True, td=td)
     end_independent_test(td)
 
 
 @then('a new test {test_name} is created but not ended')
 def create_new_test_not_end(context: Context, test_name: str):
     td = start_independent_test(context, test_name, usecase="automatically closed")
-    get_rm().test_step(td, state=STATE_PASSED, reason_of_state="Save screenshot", take_screenshot=True)
+    context.testipy_reporting.test_step(context, "isolated test step 2", reason_of_state="Save screenshot", take_screenshot=True, td=td)
+
+
+@step('save text {text} into context as {var_name}')
+def save_text_into_context(context: Context, text: str, var_name: str):
+    setattr(context, var_name, text)
+
+
+@step('variable {var_name} from context has value {value}')
+def get_text_from_context(context: Context, var_name: str, value: str):
+    text = getattr(context, var_name)
+    assert text == value
