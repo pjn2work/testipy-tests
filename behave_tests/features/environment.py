@@ -3,7 +3,7 @@ import io
 import logging
 
 from behave import fixture, use_fixture
-from behave.model import Feature, Scenario, ScenarioOutline, Tag, Step
+from behave.model import Feature, Scenario, ScenarioOutline, Step
 from behave.runner import Context
 
 from behave_tests.features.common import get_logger, set_up_logging
@@ -48,13 +48,6 @@ def before_step(context: Context, step: Step):
 
 def after_step(context: Context, step: Step):
     end_step(context, step)
-
-
-def before_tag(context: Context, tag: Tag):
-    pass
-
-def after_tag(context: Context, tag: Tag):
-    pass
 
 
 @fixture
