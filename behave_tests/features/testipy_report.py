@@ -1,11 +1,10 @@
 import os
-import importlib.util
 import traceback
 
 from behave.model import Feature, Scenario, ScenarioOutline, Step, Status
 from behave.runner import Context
 
-from behave_tests.features.steps import import_steps_modules
+from behave_tests.features.steps import import_steps_modules, load_module
 
 # Import all testipy methods here
 from testipy.configs.enums_data import STATE_SKIPPED, STATE_PASSED, STATE_FAILED, STATE_FAILED_KNOWN_BUG
@@ -20,6 +19,8 @@ from testipy.reporter import SuiteDetails, PackageDetails, TestDetails
 from testipy.reporter.report_manager import ReportManager, build_report_manager_with_reporters
 from testipy.helpers.data_driven_testing import endTest
 
+
+ORIGINAL_ENVIRONMENT_PY = "env.py"
 BASE_FOLDER = os.path.dirname(__file__)
 TESTIPY_ARGS = f"-tf {BASE_FOLDER} -r web -rid 1"
 
@@ -57,14 +58,13 @@ class TestipyReporting(metaclass=Singleton):
     def get_current_package(self) -> PackageDetails:
         return self.testipy_current_package
 
-    def get_current_suite(self, context: Context) -> SuiteDetails:
+    @staticmethod
+    def get_current_suite(context: Context) -> SuiteDetails:
         return context.testipy_current_suite
 
-    def get_current_test(self, context: Context) -> TestDetails:
+    @staticmethod
+    def get_current_test(context: Context) -> TestDetails:
         return context.testipy_current_test
-
-    def get_current_independent_test(self, context: Context) -> TestDetails:
-        return context.testipy_independent_test
 
     def test_step(self, context: Context, description: str, reason_of_state: str = "ok", take_screenshot: bool = False, exc_value: BaseException = None, td: TestDetails = None):
         get_rm().test_step(
@@ -115,8 +115,10 @@ class TestipyStep():
             raise exc_val
 
 
-def get_rm(testipy_init_args: str = TESTIPY_ARGS) -> ReportManager:
+def get_rm(testipy_init_args: str = None) -> ReportManager:
     if _testipy_reporting.rm is None:
+        if testipy_init_args is None:
+            testipy_init_args = TESTIPY_ARGS
         ap = ArgsParser.from_str(testipy_init_args)
         sa = ParseStartArguments(ap).get_start_arguments()
 
@@ -132,9 +134,11 @@ def get_package_and_suite_by_filename(feature: Feature) -> tuple[str, str, str]:
         Tuple[str, str, str] = (behave_tests.features.pkg01, tutorial01, tutorial01.feature)
     """
     filename = feature.filename
+
     package_name = str(os.path.dirname(filename).replace(os.path.sep, "."))
     filename = os.path.basename(filename)
     suite_name = feature.name
+
     return package_name, suite_name, filename
 
 
@@ -193,7 +197,7 @@ def tear_down(context: Context):
 
     pd: PackageDetails = _testipy_reporting.get_current_package()
 
-    _call_env_after_all(context, pd.name.replace(".", os.path.sep))
+    _call_env_after_all(context)
 
     get_rm().end_package(pd)
     get_rm()._teardown_("")
@@ -203,7 +207,6 @@ def tear_down(context: Context):
 
 def start_feature(context: Context, feature: Feature):
     package_name, suite_name, _ = get_package_and_suite_by_filename(feature)
-
     tests: dict[str, PackageAttr] = _testipy_reporting.get_selected_tests()
     pat: PackageAttr = tests.get(package_name)
     if pat is None:
@@ -212,15 +215,17 @@ def start_feature(context: Context, feature: Feature):
     pd: PackageDetails = _testipy_reporting.get_current_package()
     if pd is None:
         _testipy_reporting.testipy_current_package = pd = get_rm().startPackage(pat)
-        _call_env_before_all(context, os.path.dirname(feature.filename))
+        _call_env_before_all(context, feature)
     elif pd.name != package_name:
         get_rm().end_package(pd)
-        _call_env_after_all(context, os.path.dirname(feature.filename))
+        _call_env_after_all(context)
 
         _testipy_reporting.testipy_current_package = pd = get_rm().startPackage(pat)
-        _call_env_before_all(context, os.path.dirname(feature.filename))
+        _call_env_before_all(context, feature)
     else:
         _load_behave_context(context)
+        if context.testipy_env_py_exception:
+            raise context.testipy_env_py_exception
 
     sat: SuiteAttr = pat.get_suite_by_name(suite_name)
     if sat is None:
@@ -231,7 +236,7 @@ def start_feature(context: Context, feature: Feature):
 
 
 def end_feature(context: Context, feature: Feature):
-    close_any_unclosed_tests(context)
+    _close_any_unclosed_tests(context)
 
     sd: SuiteDetails = _testipy_reporting.get_current_suite(context)
     get_rm().end_suite(sd)
@@ -263,7 +268,7 @@ def end_scenario(context: Context, scenario: Scenario | ScenarioOutline):
     endTest(get_rm(), current_test)
     context.testipy_current_test = None
 
-    close_any_unclosed_tests(context)
+    _close_any_unclosed_tests(context)
 
 
 def end_step(context: Context, step: Step):
@@ -314,41 +319,43 @@ def _log_messages_to_test(context: Context, current_test: TestDetails):
         rm.test_info(current_test, f"logging:\n{log_output}", level="DEBUG")
 
 
-def _call_env_before_all(context: Context, file_path: str):
-    load_steps_from_folder(file_path)
+def _call_env_before_all(context: Context, feature: Feature):
+    context.testipy_env_py_exception = None
+    try:
+        file_path: str = os.path.dirname(feature.filename)
+        env_filename = os.path.join(file_path, ORIGINAL_ENVIRONMENT_PY)
+        _load_steps_from_folder(file_path)
 
-    file_name = "env.py"
-    file_path = os.path.join(file_path, file_name)
+        pd: PackageDetails = _testipy_reporting.get_current_package()
+        sat: SuiteAttr = _get_suite_attr_by_name(pd.package_attr, ORIGINAL_ENVIRONMENT_PY, ORIGINAL_ENVIRONMENT_PY)
+        sd: SuiteDetails = get_rm().startSuite(pd, sat)
 
-    pd: PackageDetails = _testipy_reporting.get_current_package()
-    sat: SuiteAttr = _get_suite_attr_by_name(pd.package_attr, file_name, file_name)
-    sd: SuiteDetails = get_rm().startSuite(pd, sat)
+        _testipy_reporting.testipy_env_py_suite = context.testipy_current_suite = sd
 
-    _testipy_reporting.testipy_env_py_suite = context.testipy_current_suite = sd
+        _testipy_reporting.testipy_env_py_module = module = load_module(env_filename, raise_on_error=False)
+        if module is not None and hasattr(module, "before_all"):
+            td = start_independent_test(context, "Before All")
+            context.testipy_current_test = td
+            try:
+                module.before_all(context)
+            except Exception as exc:
+                get_rm().test_step(td, state=STATE_FAILED, reason_of_state=str(exc), description=f"{ORIGINAL_ENVIRONMENT_PY} before_all call", exc_value=exc)
+                end_independent_test(td)
+                _close_any_unclosed_tests(context)
+                raise RuntimeError(f"Failed to call {env_filename} before_all.\n{exc}") from exc
 
-    _testipy_reporting.testipy_env_py_module = module = load_module(file_path, raise_on_error=False)
-    if module is not None and hasattr(module, "before_all"):
-        td = start_independent_test(context, "Before All")
-        context.testipy_current_test = td
-        try:
-            module.before_all(context)
-        except Exception as exc:
-            get_rm().test_step(td, state=STATE_FAILED, reason_of_state=str(exc), description=f"{file_name} before_all call", exc_value=exc)
             end_independent_test(td)
-            close_any_unclosed_tests(context)
-            raise RuntimeError(f"Failed to call {file_path} before_all.\n{exc}") from exc
+            _close_any_unclosed_tests(context)
 
-        end_independent_test(td)
-        close_any_unclosed_tests(context)
+        context.testipy_current_test = None
+        _save_behave_context(context)
+    except Exception as exc:
+        context.testipy_env_py_exception = exc
+        _save_behave_context(context)
+        raise
 
-    context.testipy_current_test = None
-    _save_behave_context(context)
 
-
-def _call_env_after_all(context: Context, file_path: str):
-    file_name = "env.py"
-    file_path = os.path.join(file_path, file_name)
-
+def _call_env_after_all(context: Context):
     _load_behave_context(context)
     context.testipy_current_suite = _testipy_reporting.get_env_py_suite()
 
@@ -359,10 +366,10 @@ def _call_env_after_all(context: Context, file_path: str):
         try:
             module.after_all(context)
         except Exception as exc:
-            get_rm().test_step(td, state=STATE_FAILED, reason_of_state=str(exc), description="env.py before_all call", exc_value=exc)
+            get_rm().test_step(td, state=STATE_FAILED, reason_of_state=str(exc), description=f"{ORIGINAL_ENVIRONMENT_PY} before_all call", exc_value=exc)
 
         end_independent_test(td)
-        close_any_unclosed_tests(context)
+        _close_any_unclosed_tests(context)
 
     context.testipy_current_test = None
     get_rm().end_suite(_testipy_reporting.get_env_py_suite())
@@ -392,7 +399,7 @@ def end_independent_test(td: TestDetails) -> None:
     endTest(get_rm(), td)
 
 
-def close_any_unclosed_tests(context: Context):
+def _close_any_unclosed_tests(context: Context):
     sd: SuiteDetails = _testipy_reporting.get_current_suite(context)
     for tests in sd.test_manager._tests_running_by_meid.values():
         for test in tests:
@@ -418,19 +425,5 @@ def _get_test_attr_by_name(suite_attr: SuiteAttr, test_name: str) -> TestMethodA
     return test_attr
 
 
-def load_module(file_path: str, raise_on_error: bool = True) -> object:
-    try:
-        module_name = os.path.splitext(os.path.basename(file_path))[0]
-        if module_name != '__init__':
-            spec = importlib.util.spec_from_file_location(module_name, file_path)
-            module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(module)
-            return module
-    except Exception as exc:
-        if raise_on_error:
-            raise exc
-    return None
-
-
-def load_steps_from_folder(file_path: str):
+def _load_steps_from_folder(file_path: str):
     import_steps_modules(os.path.join(file_path, "_steps"))
