@@ -22,7 +22,7 @@ from testipy.helpers.data_driven_testing import endTest
 
 ORIGINAL_ENVIRONMENT_PY = "env.py"
 BASE_FOLDER = os.path.dirname(__file__)
-TESTIPY_ARGS = f"-tf {BASE_FOLDER} -r web -rid 1"
+TESTIPY_ARGS = f"-tf {BASE_FOLDER} -r web -r-web-port 9204 -rid 1"
 
 
 class Singleton(type):
@@ -234,9 +234,14 @@ def start_feature(context: Context, feature: Feature):
     sd: SuiteDetails = get_rm().startSuite(pd, sat)
     context.testipy_current_suite = sd
 
+    _call_env_before_feature(context, feature)
+
 
 def end_feature(context: Context, feature: Feature):
     _close_any_unclosed_tests(context)
+
+    if context.testipy_env_py_exception is None:
+        _call_env_after_feature(context, feature)
 
     sd: SuiteDetails = _testipy_reporting.get_current_suite(context)
     get_rm().end_suite(sd)
@@ -259,12 +264,14 @@ def start_scenario(context: Context, scenario: Scenario | ScenarioOutline):
     td: TestDetails = get_rm().startTest(sd.set_current_test_method_attr(tma), test_name=test_name, usecase=usecase_name)
     context.testipy_current_test = td
 
+    _call_env_before_scenario(context, scenario)
 
 def end_scenario(context: Context, scenario: Scenario | ScenarioOutline):
+    _call_env_after_scenario(context, scenario)
+
     current_test: TestDetails = _testipy_reporting.get_current_test(context)
 
     _log_messages_to_test(context, current_test)
-
     endTest(get_rm(), current_test)
     context.testipy_current_test = None
 
@@ -378,12 +385,52 @@ def _call_env_after_all(context: Context):
     _testipy_reporting.testipy_env_py_suite = None
 
 
+def _call_env_before_feature(context: Context, feature: Feature):
+    module = _testipy_reporting.get_env_py_module()
+    if module is not None and hasattr(module, "before_feature"):
+        td = start_independent_test(context, "Before Feature")
+        context.testipy_current_test = td
+
+        with TestipyStep(context, "Before Feature"):
+            module.before_feature(context, feature)
+
+        end_independent_test(td)
+        _close_any_unclosed_tests(context)
+        context.testipy_current_test = None
+
+def _call_env_after_feature(context: Context, feature: Feature):
+    module = _testipy_reporting.get_env_py_module()
+    if module is not None and hasattr(module, "before_feature"):
+        td = start_independent_test(context, "After Feature")
+        context.testipy_current_test = td
+
+        with TestipyStep(context, "After Feature"):
+            module.after_feature(context, feature)
+
+        end_independent_test(td)
+        _close_any_unclosed_tests(context)
+        context.testipy_current_test = None
+
+
+def _call_env_before_scenario(context: Context, scenario: Scenario):
+    module = _testipy_reporting.get_env_py_module()
+    if module is not None and hasattr(module, "before_scenario"):
+        with TestipyStep(context, "Before Scenario"):
+            module.before_scenario(context, scenario)
+
+def _call_env_after_scenario(context: Context, scenario: Scenario):
+    module = _testipy_reporting.get_env_py_module()
+    if module is not None and hasattr(module, "after_scenario"):
+        with TestipyStep(context, "After Scenario"):
+            module.after_scenario(context, scenario)
+
+
 def _save_behave_context(context: Context):
-    _testipy_reporting.package_before_all_context = [frame for frame in context.__dict__["_stack"]]
+    _testipy_reporting.package_before_all_context = list(context.__dict__["_stack"])
 
 
 def _load_behave_context(context: Context):
-    context.__dict__["_stack"] = [frame for frame in _testipy_reporting.package_before_all_context]
+    context.__dict__["_stack"] = list(_testipy_reporting.package_before_all_context)
 
 
 def start_independent_test(context: Context, test_name: str, usecase: str = "") -> TestDetails:
@@ -426,4 +473,4 @@ def _get_test_attr_by_name(suite_attr: SuiteAttr, test_name: str) -> TestMethodA
 
 
 def _load_steps_from_folder(file_path: str):
-    import_steps_modules(os.path.join(file_path, "_steps"))
+    import_steps_modules(os.path.join(file_path, "steps_"))
