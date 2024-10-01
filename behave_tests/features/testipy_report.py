@@ -8,6 +8,7 @@ from behave_tests.features.steps import import_steps_modules, load_module
 
 # Import all testipy methods here
 from testipy.configs.enums_data import STATE_SKIPPED, STATE_PASSED, STATE_FAILED, STATE_FAILED_KNOWN_BUG
+from testipy.configs.default_config import separator_package
 from testipy.lib_modules.args_parser import ArgsParser
 from testipy.lib_modules.start_arguments import ParseStartArguments
 from testipy.engine.models import (
@@ -20,7 +21,7 @@ from testipy.reporter.report_manager import ReportManager, TestStep, build_repor
 from testipy.helpers.data_driven_testing import endTest
 
 
-ORIGINAL_ENVIRONMENT_PY = "env.py"
+ORIGINAL_ENVIRONMENT_PY = "environment_.py"
 BASE_FOLDER = os.path.dirname(__file__)
 TESTIPY_ARGS = f"-tf {BASE_FOLDER} -r web -r-web-port 9204 -rid 1"
 
@@ -186,6 +187,7 @@ def tear_down(context: Context):
 
 
 def start_feature(context: Context, feature: Feature):
+    # get package attributes based on feature filename
     package_name, suite_name, _ = get_package_and_suite_by_filename(feature)
     tests: dict[str, PackageAttr] = _testipy_reporting.get_selected_tests()
     pat: PackageAttr = tests.get(package_name)
@@ -196,9 +198,9 @@ def start_feature(context: Context, feature: Feature):
     if pd is None:
         _testipy_reporting.testipy_current_package = pd = get_rm().startPackage(pat)
         _call_env_before_all(context, feature)
-    elif pd.name != package_name:
-        get_rm().end_package(pd)
+    elif pd.name != package_name and not is_sub_package(package_name):
         _call_env_after_all(context)
+        get_rm().end_package(pd)
 
         _testipy_reporting.testipy_current_package = pd = get_rm().startPackage(pat)
         _call_env_before_all(context, feature)
@@ -206,6 +208,9 @@ def start_feature(context: Context, feature: Feature):
         _load_behave_context(context)
         if context.testipy_env_py_exception:
             raise context.testipy_env_py_exception
+        if is_sub_package(package_name):
+            get_rm().end_package(pd)
+            _testipy_reporting.testipy_current_package = pd = get_rm().startPackage(pat)
 
     sat: SuiteAttr = pat.get_suite_by_name(suite_name)
     if sat is None:
@@ -289,6 +294,17 @@ def end_step(context: Context, step: Step):
         description=f"{step.keyword} {step.name}",
         exc_value=step.exception
     )
+
+
+def is_sub_package(package_name: str) -> bool:
+    pd: PackageDetails = _testipy_reporting.get_current_package()
+    if package_name.startswith(pd.name + separator_package):
+        return True
+    if _testipy_reporting.get_env_py_suite() is None:
+        return False
+    if package_name.startswith(_testipy_reporting.get_env_py_suite().package.name):
+        return True
+    return False
 
 
 def _log_messages_to_test(context: Context, current_test: TestDetails):
