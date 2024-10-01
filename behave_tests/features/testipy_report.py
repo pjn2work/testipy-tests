@@ -16,7 +16,7 @@ from testipy.engine.models import (
     show_test_structure
 )
 from testipy.reporter import SuiteDetails, PackageDetails, TestDetails
-from testipy.reporter.report_manager import ReportManager, build_report_manager_with_reporters
+from testipy.reporter.report_manager import ReportManager, TestStep, build_report_manager_with_reporters
 from testipy.helpers.data_driven_testing import endTest
 
 
@@ -88,31 +88,11 @@ class TestipyReporting(metaclass=Singleton):
 _testipy_reporting = TestipyReporting()
 
 
-class TestipyStep():
+class TestipyStep(TestStep):
     def __init__(self, context: Context, description: str, reason_of_state: str = "ok", td: TestDetails = None):
-        self.context: Context = context
-        self.description: str = description
-        self.reason_of_state: str = reason_of_state
-        self.td: TestDetails = td or _testipy_reporting.get_current_test(self.context)
-
-    def __enter__(self):
-        get_rm().show_status(f"Executing step {self.description}")
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        get_rm().test_step(
-            current_test=self.td,
-            state=STATE_FAILED if exc_val else STATE_PASSED,
-            reason_of_state=str(exc_val) if exc_val else self.reason_of_state,
-            description=self.description,
-            exc_value=exc_val
-        )
-        if exc_val:
-            get_rm().test_info(
-                current_test=self.td,
-                info=traceback.format_exc(),
-                level="ERROR",
-            )
-            raise exc_val
+        td = td or _testipy_reporting.get_current_test(context)
+        assert td is not None, f"Cannot execute step without TestDetails"
+        super().__init__(td, description, reason_of_state)
 
 
 def get_rm(testipy_init_args: str = None) -> ReportManager:
@@ -299,7 +279,7 @@ def end_step(context: Context, step: Step):
         info = "".join(traceback.format_tb(step.exc_traceback, limit=-2))
         get_rm().test_info(
             current_test=td,
-            info=info,
+            info=f"{step.keyword} {step.name}\n{info}",
             level="ERROR"
         )
     get_rm().test_step(

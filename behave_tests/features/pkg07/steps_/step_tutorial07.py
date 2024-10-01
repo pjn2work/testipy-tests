@@ -4,7 +4,7 @@ from behave import step, when, then
 from behave.runner import Context
 
 from behave_tests.features.common import get_logger
-from behave_tests.features.testipy_report import start_independent_test, end_independent_test
+from behave_tests.features.testipy_report import start_independent_test, end_independent_test, TestStep
 
 
 @step('send message to stdout')
@@ -30,7 +30,8 @@ def test_is_running(context: Context):
 @then('a new test {test_name} is created')
 def create_new_test(context: Context, test_name: str):
     td = start_independent_test(context, test_name, usecase="manually closed")
-    context.testipy_reporting.test_step(context, "isolated test step 1", reason_of_state="Save screenshot", take_screenshot=True, td=td)
+    with TestStep(td, "isolated test step 1", reason_of_state="Save screenshot", take_screenshot=True):
+        pass
     end_independent_test(td)
 
 
