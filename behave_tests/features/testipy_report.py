@@ -11,12 +11,8 @@ from testipy.configs.enums_data import STATE_SKIPPED, STATE_PASSED, STATE_FAILED
 from testipy.configs.default_config import separator_package
 from testipy.lib_modules.args_parser import ArgsParser
 from testipy.lib_modules.start_arguments import ParseStartArguments
-from testipy.engine.models import (
-    PackageAttr, SuiteAttr, TestMethodAttr,
-    mark_packages_suites_methods_ids,
-    show_test_structure
-)
-from testipy.reporter import SuiteDetails, PackageDetails, TestDetails
+from testipy.models import PackageAttr, SuiteAttr, TestMethodAttr, SuiteDetails, PackageDetails, TestDetails
+from testipy.models.attr import mark_packages_suites_methods_ids, show_test_structure
 from testipy.reporter.report_manager import ReportManager, TestStep, build_report_manager_with_reporters
 from testipy.helpers.data_driven_testing import endTest
 
@@ -93,7 +89,7 @@ class TestipyStep(TestStep):
     def __init__(self, context: Context, description: str, reason_of_state: str = "ok", td: TestDetails = None):
         td = td or _testipy_reporting.get_current_test(context)
         assert td is not None, f"Cannot execute step without TestDetails"
-        super().__init__(td, description, reason_of_state)
+        super(TestipyStep, self).__init__(td, description, reason_of_state)
 
 
 def get_rm(testipy_init_args: str = None) -> ReportManager:
@@ -451,7 +447,6 @@ def _close_any_unclosed_tests(context: Context):
 
 def _get_suite_attr_by_name(package_attr: PackageAttr, suite_name: str, suite_filename: str = "") -> SuiteAttr:
     suite_attr: SuiteAttr = package_attr.get_suite_by_name(suite_name)
-
     if suite_attr is None:
         suite_attr = SuiteAttr(package_attr, suite_filename, suite_name)
         suite_attr.suite_id = package_attr.get_max_suite_id()

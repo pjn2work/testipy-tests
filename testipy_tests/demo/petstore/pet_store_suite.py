@@ -1,7 +1,11 @@
-from typing import Dict
+from __future__ import annotations
+from typing import Dict, TYPE_CHECKING
 
 from testipy.helpers.handle_assertions import ExpectedError
-from testipy.reporter import ReportManager, SuiteDetails
+
+if TYPE_CHECKING:
+    from testipy.models import SuiteDetails
+    from testipy.reporter import ReportManager
 
 from pet_store_toolbox import Toolbox
 

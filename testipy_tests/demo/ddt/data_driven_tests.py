@@ -1,8 +1,12 @@
-from typing import Dict
+from __future__ import annotations
+from typing import Dict, TYPE_CHECKING
 
-from testipy.reporter import ReportManager, SuiteDetails, TestDetails
 from testipy.helpers.data_driven_testing import ExecutionToolbox, SafeTry, DDTMethods
 from testipy.helpers.rest import handle_http_response
+
+if TYPE_CHECKING:
+    from testipy.models import SuiteDetails, TestDetails
+    from testipy.reporter import ReportManager
 
 
 class Toolbox(ExecutionToolbox):

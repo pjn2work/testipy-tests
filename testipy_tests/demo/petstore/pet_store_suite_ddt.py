@@ -1,5 +1,11 @@
-from testipy.reporter import ReportManager, SuiteDetails
+from __future__ import annotations
+from typing import TYPE_CHECKING
+
 from testipy.helpers.data_driven_testing import DDTMethods, RunMode
+
+if TYPE_CHECKING:
+    from testipy.models import SuiteDetails
+    from testipy.reporter import ReportManager
 
 from pet_store_toolbox import Toolbox
 

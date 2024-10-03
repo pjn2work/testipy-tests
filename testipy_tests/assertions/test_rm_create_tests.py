@@ -1,3 +1,6 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+
 from testipy.helpers.handle_assertions import (
     HandledError,
     ExpectedError,
@@ -9,7 +12,10 @@ from testipy.helpers.handle_assertions import (
 
 from testipy.configs import enums_data
 from testipy.helpers import prettify
-from testipy.reporter import ReportManager, SuiteDetails, TestDetails
+
+if TYPE_CHECKING:
+    from testipy.models import SuiteDetails, TestDetails
+    from testipy.reporter import ReportManager
 
 
 class SuiteRM_CreateTests:

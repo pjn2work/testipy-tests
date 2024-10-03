@@ -1,10 +1,16 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+
 from time import sleep
 
 from testipy.helpers.prettify import prettify
 
 from testipy.configs import enums_data
 from testipy.helpers.handle_assertions import ExpectedError
-from testipy.reporter import ReportManager, SuiteDetails, TestDetails
+
+if TYPE_CHECKING:
+    from testipy.models import SuiteDetails, TestDetails
+    from testipy.reporter import ReportManager
 
 
 class SuiteDemo_01:
