@@ -3,6 +3,7 @@ import traceback
 
 from behave.model import Feature, Scenario, ScenarioOutline, Step, Status
 from behave.runner import Context
+from testipy.helpers.handle_assertions import ExpectedError
 
 from behave_tests.features.steps import import_steps_modules, load_module
 
@@ -267,16 +268,25 @@ def end_scenario(context: Context, scenario: Scenario | ScenarioOutline):
 def end_step(context: Context, step: Step):
     td: TestDetails = _testipy_reporting.get_current_test(context)
     if step.exception:
-        info = "".join(traceback.format_tb(step.exc_traceback, limit=-2))
-        get_rm().test_info(
-            current_test=td,
-            info=f"{step.keyword} {step.name}\n{info}",
-            level="ERROR"
-        )
+        if isinstance(step.exception, ExpectedError):
+            reason_of_state = str(step.exception)
+            step.status = Status.passed
+            step.exception = None
+            step.exc_traceback = None
+        else:
+            info = "".join(traceback.format_tb(step.exc_traceback, limit=-2))
+            reason_of_state = str(step.exception)
+            get_rm().test_info(
+                current_test=td,
+                info=f"{step.keyword} {step.name}\n{info}",
+                level="ERROR"
+            )
+    else:
+        reason_of_state = "ok"
     get_rm().test_step(
         current_test=td,
         state=_get_status(step.status),
-        reason_of_state=str(step.exception) if step.exception else "ok",
+        reason_of_state=reason_of_state,
         description=f"{step.keyword} {step.name}",
         exc_value=step.exception
     )

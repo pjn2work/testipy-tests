@@ -1,3 +1,4 @@
+import json
 import yaml
 
 from behave import given, step
@@ -12,7 +13,16 @@ def behave_is_installed(context: Context):
     pass
 
 
-@step("I have the following YAML data")
-def save_into_context_yaml(context: Context):
-    context.data = yaml.safe_load(context.text)
-    get_logger(context).info(prettify(context.data, as_yaml=True))
+@step("I have the following {dtype} data")
+def save_into_context_data(context: Context, dtype: str):
+    get_logger(context).info(context.text)
+
+    accepted_types = {"yaml", "json"}
+    dtype = dtype.lower()
+
+    if dtype == "yaml":
+        context.data = yaml.safe_load(context.text)
+    elif dtype == "json":
+        context.data = json.loads(context.text)
+    else:
+        raise ValueError(f"Unsupported dtype: {dtype}. Only {accepted_types}")
