@@ -51,8 +51,8 @@ def after_step(context: Context, step: Step):
 
 
 @fixture
-def capture_logs(context):
-    stdout, stderr, log_stream, stdout_redirect, stderr_redirect, log_handler, logger = _capture_output()
+def capture_logs(context: Context):
+    stdout, stderr, log_stream, stdout_redirect, stderr_redirect, log_handler, logger = _capture_output(context)
 
     context.stdout = stdout
     context.stderr = stderr
@@ -68,7 +68,7 @@ def capture_logs(context):
     logger.removeHandler(log_handler)
 
 
-def _capture_output():
+def _capture_output(context: Context):
     stdout = io.StringIO()
     stderr = io.StringIO()
     log_stream = io.StringIO()
@@ -79,7 +79,7 @@ def _capture_output():
 
     # Set up logging to capture to a stream
     log_handler = logging.StreamHandler(log_stream)
-    logger = get_logger()
+    logger = get_logger(context)
     logger.addHandler(log_handler)
 
     return stdout, stderr, log_stream, stdout_redirect, stderr_redirect, log_handler, logger

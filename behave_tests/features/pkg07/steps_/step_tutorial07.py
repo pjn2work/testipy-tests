@@ -19,7 +19,7 @@ def send_to_stderr(context: Context):
 
 @step('log message to logger')
 def log_message(context: Context):
-    get_logger().info(">>>>> sent to log")
+    get_logger(context).info(">>>>> sent to log")
 
 
 @when('this test is running')

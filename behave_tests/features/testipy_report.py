@@ -307,15 +307,15 @@ def _log_messages_to_test(context: Context, current_test: TestDetails):
     # Access captured output
     stdout_output = context.stdout.getvalue()
     stderr_output = context.stderr.getvalue()
-    log_output = context.log_stream.getvalue()
+    # log_output = context.log_stream.getvalue()
 
     rm: ReportManager = get_rm()
     if stdout_output:
         rm.test_info(current_test, f"stdout:\n{stdout_output}", level="INFO")
     if stderr_output:
         rm.test_info(current_test, f"stderr:\n{stderr_output}", level="ERROR")
-    if log_output:
-        rm.test_info(current_test, f"logging:\n{log_output}", level="DEBUG")
+    # if log_output:
+    #     rm.test_info(current_test, f"logging:\n{log_output}", level="DEBUG")
 
 
 def _call_env_before_all(context: Context, feature: Feature):
