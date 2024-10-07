@@ -253,28 +253,18 @@ def end_scenario(context: Context, scenario: Scenario | ScenarioOutline):
     current_test: TestDetails = _testipy_reporting.get_current_test(context)
 
     _log_messages_to_test(context, current_test)
-    endTest(get_rm(), current_test)
+    if current_test.get_test_step_counters().get_last_state():
+        endTest(get_rm(), current_test)
+    else:
+        status = _get_status(scenario.status)
+        reason_of_state = "ok" if status == STATE_PASSED else "undefined"
+        current_test.rm.end_test(current_test, status, reason_of_state, scenario.exception)
     context.testipy_current_test = None
 
     _close_any_unclosed_tests(context)
 
 
 def end_step(context: Context, step: Step):
-    def _get_status(status: Status | int) -> str:
-        _STATUS = {
-            0: STATE_SKIPPED,
-            1: STATE_SKIPPED,
-            2: STATE_PASSED,
-            3: STATE_FAILED,
-            4: STATE_FAILED,
-            5: STATE_FAILED,
-        }
-        if isinstance(status, int):
-            return _STATUS.get(status, STATE_FAILED_KNOWN_BUG)
-        if isinstance(status, Status):
-            return _STATUS.get(status.value, STATE_FAILED_KNOWN_BUG)
-        raise ValueError(f"Unexpected status value: {status}")
-
     td: TestDetails = _testipy_reporting.get_current_test(context)
     if step.exception:
         info = "".join(traceback.format_tb(step.exc_traceback, limit=-2))
@@ -301,6 +291,22 @@ def is_sub_package(package_name: str) -> bool:
     if package_name.startswith(_testipy_reporting.get_env_py_suite().package.name):
         return True
     return False
+
+
+def _get_status(status: Status | int) -> str:
+    _STATUS = {
+        0: STATE_SKIPPED,
+        1: STATE_SKIPPED,
+        2: STATE_PASSED,
+        3: STATE_FAILED,
+        4: STATE_FAILED,
+        5: STATE_FAILED,
+    }
+    if isinstance(status, int):
+        return _STATUS.get(status, STATE_FAILED_KNOWN_BUG)
+    if isinstance(status, Status):
+        return _STATUS.get(status.value, STATE_FAILED_KNOWN_BUG)
+    raise ValueError(f"Unexpected status value: {status}")
 
 
 def _log_messages_to_test(context: Context, current_test: TestDetails):

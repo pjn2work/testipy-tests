@@ -44,10 +44,11 @@ def after_scenario(context: Context, scenario: Scenario | ScenarioOutline):
 
 
 def before_step(context: Context, step: Step):
-    pass
+    context.step = step
 
 def after_step(context: Context, step: Step):
     end_step(context, step)
+    context.step = None
 
 
 @fixture
