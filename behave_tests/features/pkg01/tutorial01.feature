@@ -21,7 +21,7 @@ Feature: Showing off behave (tutorial01)
     Examples: table 1
       | Index | Desc |
       | 4     | val4 |
-      | 7     | val7 |
+      | 7     | Fail |
 
     @prefix:table_2
     Examples: table 2

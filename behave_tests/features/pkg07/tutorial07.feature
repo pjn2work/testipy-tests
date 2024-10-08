@@ -18,3 +18,12 @@ Scenario: Start independent test
     When this test is running
     Then a new test manually created is created
     And a new test manually created is created but not ended
+
+
+Scenario: Get Value from before_all context
+    Then variable var07_0 from context has value TUTORIAL_07
+
+
+Scenario: Save Value in context
+    When save text This is my text into context as var07_1
+    Then variable var07_1 from context has value This is my text

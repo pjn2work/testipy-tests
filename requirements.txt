@@ -1,2 +1,2 @@
 behave>=1.2
-testipy>=0.10
+testipy>=0.10.2
