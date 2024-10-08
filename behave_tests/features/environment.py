@@ -16,7 +16,7 @@ from behave_tests.features.testipy_report import (
     end_step
 )
 
-# behave -D testipy="-rid 5 -r web -r-web-port 9204" behave_tests/features/pkg07 --no-capture --no-capture-stderr
+# behave -D testipy="-rid 5 -r web -r-web-port 9204 -r log" behave_tests/features/pkg07 --no-capture --no-capture-stderr
 
 def before_all(context: Context):
     tear_up(context)
