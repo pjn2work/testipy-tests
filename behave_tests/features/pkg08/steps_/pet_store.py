@@ -19,13 +19,14 @@ def post_to_petstore(context: Context, status_code: str):
 
     context.response = _post_as_dict(context.url, context.data)
     context.logging.info(context.response.text)
-    assert context.response.status_code == status_code, f"Expected {status_code=}, not {context.response.status_code}.\n{context.response.text}"
+    assert context.response.status_code == status_code, f"Expected {status_code=}, not {context.response.status_code}."
 
     if 200 <= status_code <= 299:
         received = context.response.json()
         assert_equal_dicts(context.data, received)
     else:
         raise ExpectedError(f"designed to fail with {status_code}")
+
 
 @step("I can get the same pet from store, and receive a {status_code} status code")
 def get_from_petstore(context: Context, status_code: str):

@@ -5,7 +5,7 @@ from behave.model import Feature, Scenario, ScenarioOutline, Step, Status
 from behave.runner import Context
 from testipy.helpers.handle_assertions import ExpectedError
 
-from behave_tests.features.steps import import_steps_modules, load_module
+from behave_tests.features.common import import_steps_modules, load_module
 
 # Import all testipy methods here
 from testipy.configs.enums_data import STATE_SKIPPED, STATE_PASSED, STATE_FAILED, STATE_FAILED_KNOWN_BUG

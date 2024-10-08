@@ -61,3 +61,4 @@ Feature: PetStore
       name: Another Sissi
       """
     When post data to pet store, I receive a 500 status code
+    Then do nothing

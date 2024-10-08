@@ -5,11 +5,11 @@ from behave import given, step
 from behave.runner import Context
 
 from behave_tests.features.common import get_logger
-from testipy.helpers.prettify import prettify
 
 
+@step("do nothing")
 @given("we have behave installed")
-def behave_is_installed(context: Context):
+def dummy_step(context: Context):
     pass
 
 
@@ -17,12 +17,14 @@ def behave_is_installed(context: Context):
 def save_into_context_data(context: Context, dtype: str):
     get_logger(context).info(context.text)
 
-    accepted_types = {"yaml", "json"}
+    accepted_types = {"yaml", "json", "text"}
     dtype = dtype.lower()
 
     if dtype == "yaml":
         context.data = yaml.safe_load(context.text)
     elif dtype == "json":
         context.data = json.loads(context.text)
+    elif dtype == "text":
+        context.data = context.text
     else:
         raise ValueError(f"Unsupported dtype: {dtype}. Only {accepted_types}")
