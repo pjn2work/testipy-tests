@@ -1,12 +1,11 @@
 import contextlib
 import io
-import logging
 
 from behave import fixture, use_fixture
 from behave.model import Feature, Scenario, ScenarioOutline, Step
 from behave.runner import Context
 
-from behave_tests.features.common import get_logger, set_up_logging
+from behave_tests.features.common import set_up_logging
 from behave_tests.features.testipy_report import (
     tear_up,
     tear_down,
@@ -17,6 +16,7 @@ from behave_tests.features.testipy_report import (
     end_step
 )
 
+# behave -D testipy="-rid 5 -r web -r-web-port 9204" behave_tests/features/pkg07 --no-capture --no-capture-stderr
 
 def before_all(context: Context):
     tear_up(context)
