@@ -20,7 +20,7 @@ from testipy.helpers.data_driven_testing import endTest
 
 ORIGINAL_ENVIRONMENT_PY = "environment_.py"
 BASE_FOLDER = os.path.dirname(__file__)
-TESTIPY_ARGS = f"-tf {BASE_FOLDER} -r web -r-web-port 9204 -rid 1"
+TESTIPY_ARGS = f"-tf {BASE_FOLDER} -r web -r-web-port 9204 -rid 1 -r log"
 
 
 class Singleton(type):
@@ -95,7 +95,9 @@ class TestipyStep(TestStep):
 
 def get_rm(testipy_init_args: str = None) -> ReportManager:
     if _testipy_reporting.rm is None:
-        if testipy_init_args is None:
+        if testipy_init_args:
+            testipy_init_args = f"-tf {BASE_FOLDER} {testipy_init_args}"
+        else:
             testipy_init_args = TESTIPY_ARGS
         ap = ArgsParser.from_str(testipy_init_args)
         sa = ParseStartArguments(ap).get_start_arguments()
@@ -123,6 +125,8 @@ def get_package_and_suite_by_filename(feature: Feature) -> tuple[str, str, str]:
 def tear_up(context: Context):
     if _testipy_reporting.tear_up_executed:
         return
+
+    get_rm(context.config.userdata.get("testipy"))
 
     def _create_test_attr(sat: SuiteAttr, test_name: str, scenario, comment: str):
         tma = sat.get_test_method_by_name(test_name)

@@ -53,34 +53,34 @@ def after_step(context: Context, step: Step):
 
 @fixture
 def capture_logs(context: Context):
-    stdout, stderr, log_stream, stdout_redirect, stderr_redirect, log_handler, logger = _capture_output(context)
+    stdout, stderr, stdout_redirect, stderr_redirect = _capture_output(context)
 
     context.stdout = stdout
     context.stderr = stderr
-    context.log_stream = log_stream
+    # context.log_stream = log_stream
     context.stdout_redirect = stdout_redirect
     context.stderr_redirect = stderr_redirect
-    context.log_handler = log_handler
-    context.logger = logger
+    # context.log_handler = log_handler
+    # context.logger = logger
 
     with stdout_redirect, stderr_redirect:
         yield
 
-    logger.removeHandler(log_handler)
+    # logger.removeHandler(log_handler)
 
 
 def _capture_output(context: Context):
     stdout = io.StringIO()
     stderr = io.StringIO()
-    log_stream = io.StringIO()
+    # log_stream = io.StringIO()
 
     # Redirect stdout and stderr
     stdout_redirect = contextlib.redirect_stdout(stdout)
     stderr_redirect = contextlib.redirect_stderr(stderr)
 
     # Set up logging to capture to a stream
-    log_handler = logging.StreamHandler(log_stream)
-    logger = get_logger(context)
-    logger.addHandler(log_handler)
+    # log_handler = logging.StreamHandler(log_stream)
+    # logger = get_logger(context)
+    # logger.addHandler(log_handler)
 
-    return stdout, stderr, log_stream, stdout_redirect, stderr_redirect, log_handler, logger
+    return stdout, stderr, stdout_redirect, stderr_redirect

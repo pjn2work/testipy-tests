@@ -48,6 +48,10 @@ def set_up_logging(context: Context):
         force=True
     )
 
+    # Silence stdout, only errors
+    for handler in logging.root.handlers[:]:
+        handler.setLevel(logging.ERROR)
+
     # Create a custom TestiPy log handler
     testipy_log_handler = TestiPyLogHandler(context)
     testipy_log_handler.setLevel(logging.DEBUG)
