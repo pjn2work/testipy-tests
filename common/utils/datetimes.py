@@ -4,6 +4,7 @@ from zoneinfo import ZoneInfo
 
 DATETIME_FORMAT_DEFAULT = "%Y-%m-%d %H:%M:%S"
 DATETIME_FORMAT_ISO = "%Y-%m-%dT%H:%M:%S"
+DATETIME_FORMAT_OFFSET = "%Y-%m-%dT%H:%M:%S%z"
 DATE_FORMAT_ISO = "%Y-%m-%d"
 
 
@@ -81,7 +82,14 @@ def isoformat_long(datetime_: datetime, /, *, sep: Literal["T", " "] = "T") -> s
 def string_to_datetime(datetime_: str, /, *, format_: str = DATETIME_FORMAT_DEFAULT, tz: tzinfo | str = timezone.utc) -> datetime:
     if isinstance(tz, str):
         tz = ZoneInfo(tz)
-    return datetime.strptime(datetime_, format_).replace(tzinfo=tz)
+    _result = datetime.strptime(datetime_, format_)
+    if tz is None:
+        return _result
+    else:
+        if _result.tzinfo is None:
+            return _result.replace(tzinfo=tz)
+        else:
+            return _result.astimezone(tz)
 
 
 def string_to_date(date_: str, /, *, format_: str = DATE_FORMAT_ISO) -> date:
@@ -103,11 +111,13 @@ class DatetimeCompare:
             dt_min: timedelta | None = None,
             dt_max: timedelta | None = None,
             *,
-            dt_format: str = DATETIME_FORMAT_DEFAULT,
+            dt_str_format: str = DATETIME_FORMAT_DEFAULT,
             expected_type: Literal["datetime", "date"] = "datetime",
+            tz: tzinfo | str | None = None,
     ):
+        self.tz = ZoneInfo(tz) if isinstance(tz, str) else tz
         self.expected_type = self._auto_detect_type(expected, expected_type)
-        self.dt_format = dt_format
+        self.dt_str_format = dt_str_format
         self.expected = self._convert_to_datetime(expected)
         self.min_dt = dt_min or timedelta(0)
         self.max_dt = dt_max or timedelta(0)
@@ -127,9 +137,10 @@ class DatetimeCompare:
             return expected
         if isinstance(expected, str):
             if self.expected_type == "datetime":
-                return string_to_datetime(expected, format_=self.dt_format)
+                _result = string_to_datetime(expected, format_=self.dt_str_format, tz=self.tz)
+                return _result if self.tz is None or _result.tzinfo else _result.replace(tzinfo=self.tz)
             if self.expected_type == "date":
-                return string_to_date(expected, format_=self.dt_format)
+                return string_to_date(expected, format_=self.dt_str_format)
             raise TypeError(f"Unknown {self.expected_type=}!")
         raise TypeError(f"Expected {expected} is {type(expected)}. Can only accept objects that are datetime or date or string.")
 
@@ -148,5 +159,4 @@ class DatetimeCompare:
     def __str__(self):
         return f"[{self.expected - self.min_dt} .. {self.expected + self.max_dt}]"
 
-    def __repr__(self):
-        return f"[{self.expected - self.min_dt} .. {self.expected + self.max_dt}]"
+    __repr__ = __str__
