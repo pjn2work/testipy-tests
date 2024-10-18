@@ -33,23 +33,23 @@ expected_as_date_format = DATE_FORMAT_ISO
     (expected_as_datetime_tz, date_time_plus_timedelta(expected_as_datetime_tz, seconds=2), None, timedelta(minutes=2), expected_as_datetime_tz_format, None, True),
 ])
 def test_compare_datetime_datetime(expected, other, dt_min, dt_max, dt_str_format, tz, should_equal):
-    dtc = DatetimeCompare(expected, dt_min, dt_max, dt_str_format=dt_str_format, expected_type="datetime", tz=tz)
+    dtc = DatetimeCompare(expected, dt_min, dt_max, dt_str_format=dt_str_format, tz=tz)
     assert (dtc == other) == should_equal
 
 
-@pytest.mark.parametrize("expected, other, dt_str_format, expected_error", [
-    (expected_as_datetime_tz, expected_as_datetime, expected_as_datetime_format, TypeError),
-    (expected_as_datetime, expected_as_datetime_tz, expected_as_datetime_tz_format, TypeError),
-    (expected_as_datetime, expected_as_date, expected_as_date_format, TypeError),
-    (expected_as_date, expected_as_datetime, expected_as_date_format, TypeError),
-    (expected_as_datetime, "2024-10-09T10:00:00Z", expected_as_datetime_format, ValueError),
-    (expected_as_date, "2015-31-31", expected_as_date_format, ValueError),
+@pytest.mark.parametrize("expected, other, dt_str_format, expected_error, as_datetime", [
+    (expected_as_datetime_tz, expected_as_datetime, expected_as_datetime_format, TypeError, True),
+    (expected_as_datetime, expected_as_datetime_tz, expected_as_datetime_tz_format, TypeError, True),
+    (expected_as_datetime, expected_as_date, expected_as_date_format, TypeError, True),
+    (expected_as_date, expected_as_datetime, expected_as_date_format, TypeError, False),
+    (expected_as_datetime, "2024-10-09T10:00:00Z", expected_as_datetime_format, ValueError, True),
+    (expected_as_date, "2015-31-31", expected_as_date_format, ValueError, False),
 ])
-def test_compare_errors(expected, other, dt_str_format, expected_error):
-    dtc = DatetimeCompare(expected, dt_str_format=dt_str_format)
+def test_compare_errors(expected, other, dt_str_format, expected_error, as_datetime):
+    _func = DatetimeCompare if as_datetime else DateCompare
+    dtc = _func(expected, dt_str_format=dt_str_format)
     with pytest.raises(expected_error):
         dtc == other
-
 
 
 @pytest.mark.parametrize("expected, other, dt_str_format, tz, should_equal", [
@@ -69,12 +69,12 @@ def test_compare_errors(expected, other, dt_str_format, expected_error):
     (expected_as_datetime_tz, "2024-08-09 11:00:30", expected_as_datetime_format, timezone.utc, False),
 ])
 def test_compare_datetime_str(expected, other, dt_str_format, tz, should_equal):
-    dtc = DatetimeCompare(expected, dt_str_format=dt_str_format, expected_type="datetime", tz=tz)
+    dtc = DatetimeCompare(expected, dt_str_format=dt_str_format, tz=tz)
     assert (dtc == other) == should_equal
 
 
 def test_compare_str_datetime():
-    dtc = DatetimeCompare(expected_as_str, timedelta(minutes=1), timedelta(minutes=2), dt_str_format=expected_as_datetime_format, expected_type="datetime")
+    dtc = DatetimeCompare(expected_as_str, timedelta(minutes=1), timedelta(minutes=2), dt_str_format=expected_as_datetime_format)
 
     valid = (
         expected_as_datetime - timedelta(seconds=59),
@@ -94,7 +94,7 @@ def test_compare_str_datetime():
 
 
 def test_compare_date_date():
-    dtc = DatetimeCompare(expected_as_date, timedelta(days=1), timedelta(days=2), dt_str_format=expected_as_date_format)
+    dtc = DateCompare(expected_as_date, timedelta(days=1), timedelta(days=2), dt_str_format=expected_as_date_format)
 
     valid = (
         expected_as_date - timedelta(days=1),
@@ -112,7 +112,7 @@ def test_compare_date_date():
 
 
 def test_compare_date_str():
-    dtc = DatetimeCompare(expected_as_date, timedelta(days=1), timedelta(days=2), dt_str_format=expected_as_date_format)
+    dtc = DateCompare(expected_as_date, timedelta(days=1), timedelta(days=2), dt_str_format=expected_as_date_format)
 
     valid = (
         (expected_as_date - timedelta(days=1)).isoformat(),
@@ -135,7 +135,7 @@ def test_compare_date_str():
 
 
 def test_compare_str_date():
-    dtc = DatetimeCompare(expected_as_str, timedelta(days=1), timedelta(days=2), dt_str_format=expected_as_datetime_format, expected_type="date")
+    dtc = DateCompare(expected_as_str, timedelta(days=1), timedelta(days=2), dt_str_format=expected_as_datetime_format)
 
     valid = (
         expected_as_date - timedelta(days=1),
@@ -152,7 +152,6 @@ def test_compare_str_date():
         assert dtc != value, f"{dtc} is not different than {value}"
 
 
-
 @pytest.mark.parametrize("expected, other, dt_str_format, tz, should_equal", [
     # datetime (without timezone) vs datetime (without timezone)
     ("2024-10-09 09:59:35", "2024-10-09 09:58:35", DATETIME_FORMAT_DEFAULT, None, True),
@@ -166,12 +165,12 @@ def test_compare_str_date():
     ("2024-10-09T09:59:35+02:00", "2024-10-09T06:58:35+00:00", DATETIME_FORMAT_OFFSET, None, False),
 ])
 def test_compare_str_str_for_datetime(expected, other, dt_str_format, tz, should_equal):
-    dtc = DatetimeCompare(expected, timedelta(minutes=1), timedelta(minutes=2), dt_str_format=dt_str_format, expected_type="datetime", tz=tz)
+    dtc = DatetimeCompare(expected, timedelta(minutes=1), timedelta(minutes=2), dt_str_format=dt_str_format, tz=tz)
     assert (dtc == other) == should_equal
 
 
 def test_compare_str_str_for_date():
-    dtc = DatetimeCompare("2024-10-09", timedelta(days=1), timedelta(days=2), dt_str_format=expected_as_date_format, expected_type="date")
+    dtc = DateCompare("2024-10-09", timedelta(days=1), timedelta(days=2), dt_str_format=expected_as_date_format)
 
     valid = (
         "2024-10-08",
@@ -215,7 +214,6 @@ def test_date_methods():
     assert date_to_string(date_time_plus_timedelta(_date, days=1)) == "2025-01-01"
 
     assert date_to_string(_date, format_="%m %d/%Y") == "12 31/2024"
-
 
 
 def test_datetime_methods():

@@ -104,57 +104,66 @@ def date_to_string(date_: date, /, format_: str = DATE_FORMAT_ISO) -> str:
     return date_.strftime(format_)
 
 
+class DateCompare:
+    def __init__(
+            self,
+            expected: date | str,
+            dt_min: timedelta | None = None,
+            dt_max: timedelta | None = None,
+            /, *,
+            dt_str_format: str = DATE_FORMAT_ISO,
+    ):
+        self.dt_str_format = dt_str_format
+        self.expected = self._convert_to_date(expected)
+        self.min_dt = dt_min or timedelta(0)
+        self.max_dt = dt_max or timedelta(0)
+
+    def _convert_to_date(self, expected: date | str) -> date:
+        if isinstance(expected, date):
+            return expected
+        if isinstance(expected, str):
+            return string_to_date(expected, format_=self.dt_str_format)
+        raise TypeError(f"Expected {expected} is {type(expected)}. Can only accept objects that are date or string.")
+
+    def __eq__(self, other):
+        if isinstance(other, str):
+            other = self._convert_to_date(other)
+        return self.expected - self.min_dt <= other <= self.expected + self.max_dt
+
+    def __str__(self):
+        return f"[{self.expected - self.min_dt} .. {self.expected + self.max_dt}]"
+
+    __repr__ = __str__
+
+
 class DatetimeCompare:
     def __init__(
             self,
             expected: datetime | date | str,
             dt_min: timedelta | None = None,
             dt_max: timedelta | None = None,
-            *,
+            /, *,
             dt_str_format: str = DATETIME_FORMAT_DEFAULT,
-            expected_type: Literal["datetime", "date"] = "datetime",
             tz: tzinfo | str | None = None,
     ):
         self.tz = ZoneInfo(tz) if isinstance(tz, str) else tz
-        self.expected_type = self._auto_detect_type(expected, expected_type)
         self.dt_str_format = dt_str_format
         self.expected = self._convert_to_datetime(expected)
         self.min_dt = dt_min or timedelta(0)
         self.max_dt = dt_max or timedelta(0)
 
-    @staticmethod
-    def _auto_detect_type(expected: datetime | date | str, expected_type: Literal["datetime", "date"]):
-        if isinstance(expected, datetime):
-            return "datetime"
-        if isinstance(expected, date):
-            return "date"
-        if expected_type not in ("datetime", "date"):
-            raise TypeError(f"Parameter expected_type is '{expected_type}'. Can only accept 'datetime' or 'date' strings")
-        return expected_type
-
     def _convert_to_datetime(self, expected: datetime | date | str) -> datetime | date:
-        if isinstance(expected, (datetime, date)):
+        if isinstance(expected, datetime):
             return expected
         if isinstance(expected, str):
-            if self.expected_type == "datetime":
-                _result = string_to_datetime(expected, format_=self.dt_str_format, tz=self.tz)
-                return _result if self.tz is None or _result.tzinfo else _result.replace(tzinfo=self.tz)
-            if self.expected_type == "date":
-                return string_to_date(expected, format_=self.dt_str_format)
-            raise TypeError(f"Unknown {self.expected_type=}!")
-        raise TypeError(f"Expected {expected} is {type(expected)}. Can only accept objects that are datetime or date or string.")
+            _result = string_to_datetime(expected, format_=self.dt_str_format, tz=self.tz)
+            return _result if self.tz is None or _result.tzinfo else _result.replace(tzinfo=self.tz)
+        raise TypeError(f"Expected {expected} is {type(expected)}. Can only accept objects that are datetime or string.")
 
     def __eq__(self, other):
         if isinstance(other, str):
             other = self._convert_to_datetime(other)
-
-        if not isinstance(other, type(self.expected)):
-            raise TypeError(f"Expected '{self.expected}' is {type(self.expected_type)}, but other '{other}' is {type(other)}")
-
-        if isinstance(other, (datetime, date)):
-            return self.expected - self.min_dt <= other <= self.expected + self.max_dt
-
-        raise TypeError(f"Other '{other}' is {type(other)}. Can only accept datetime/date/str objects.")
+        return self.expected - self.min_dt <= other <= self.expected + self.max_dt
 
     def __str__(self):
         return f"[{self.expected - self.min_dt} .. {self.expected + self.max_dt}]"
