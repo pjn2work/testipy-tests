@@ -67,6 +67,12 @@ def test_compare_errors(expected, other, dt_str_format, expected_error, as_datet
     (expected_as_datetime_tz, "2024-08-09 10:00:30", expected_as_datetime_format, timezone.utc, True),
     (expected_as_datetime_tz, "2024-08-09 09:00:30", expected_as_datetime_format, timezone.utc, False),
     (expected_as_datetime_tz, "2024-08-09 11:00:30", expected_as_datetime_format, timezone.utc, False),
+    (expected_as_datetime_tz, "2024-08-09 10:00:30", [DATETIME_FORMAT_ISO, DATETIME_FORMAT_OFFSET, DATETIME_FORMAT_DEFAULT], timezone.utc, True),
+    (expected_as_datetime_tz, "2024-08-09 11:00:30", [DATETIME_FORMAT_ISO, DATETIME_FORMAT_OFFSET, DATETIME_FORMAT_DEFAULT], timezone.utc, False),
+    (expected_as_datetime_tz, "2024-08-09T10:00:30", [DATETIME_FORMAT_ISO, DATETIME_FORMAT_OFFSET, DATETIME_FORMAT_DEFAULT], timezone.utc, True),
+    (expected_as_datetime_tz, "2024-08-09T11:00:30", [DATETIME_FORMAT_ISO, DATETIME_FORMAT_OFFSET, DATETIME_FORMAT_DEFAULT], timezone.utc, False),
+    (expected_as_datetime_tz, "2024-08-09T12:00:30+02:00", [DATETIME_FORMAT_ISO, DATETIME_FORMAT_OFFSET, DATETIME_FORMAT_DEFAULT], None, True),
+    (expected_as_datetime_tz, "2024-08-09T10:00:30+02:00", [DATETIME_FORMAT_ISO, DATETIME_FORMAT_OFFSET, DATETIME_FORMAT_DEFAULT], None, False),
 ])
 def test_compare_datetime_str(expected, other, dt_str_format, tz, should_equal):
     dtc = DatetimeCompare(expected, dt_str_format=dt_str_format, tz=tz)

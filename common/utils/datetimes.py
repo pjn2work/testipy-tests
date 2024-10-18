@@ -111,19 +111,24 @@ class DateCompare:
             dt_min: timedelta | None = None,
             dt_max: timedelta | None = None,
             /, *,
-            dt_str_format: str = DATE_FORMAT_ISO,
+            dt_str_format: str | list[str] = DATE_FORMAT_ISO,
     ):
-        self.dt_str_format = dt_str_format
+        self.dt_str_format: list[str] | str = dt_str_format if isinstance(dt_str_format, list) else [dt_str_format]
         self.expected = self._convert_to_date(expected)
         self.min_dt = dt_min or timedelta(0)
         self.max_dt = dt_max or timedelta(0)
 
-    def _convert_to_date(self, expected: date | str) -> date:
-        if isinstance(expected, date):
-            return expected
-        if isinstance(expected, str):
-            return string_to_date(expected, format_=self.dt_str_format)
-        raise TypeError(f"Expected {expected} is {type(expected)}. Can only accept objects that are date or string.")
+    def _convert_to_date(self, date_value: date | str) -> date:
+        if isinstance(date_value, date):
+            return date_value
+        if isinstance(date_value, str):
+            for dt_str_format in self.dt_str_format:
+                try:
+                    return string_to_date(date_value, format_=dt_str_format)
+                except Exception:
+                    pass
+            raise ValueError(f"No format fit to decode '{date_value}")
+        raise TypeError(f"Date {date_value} is {type(date_value)}. Can only accept objects that are date or string.")
 
     def __eq__(self, other):
         if isinstance(other, str):
@@ -143,22 +148,27 @@ class DatetimeCompare:
             dt_min: timedelta | None = None,
             dt_max: timedelta | None = None,
             /, *,
-            dt_str_format: str = DATETIME_FORMAT_DEFAULT,
+            dt_str_format: str | list[str] = DATETIME_FORMAT_DEFAULT,
             tz: tzinfo | str | None = None,
     ):
         self.tz = ZoneInfo(tz) if isinstance(tz, str) else tz
-        self.dt_str_format = dt_str_format
+        self.dt_str_format: list[str] | str = dt_str_format if isinstance(dt_str_format, list) else [dt_str_format]
         self.expected = self._convert_to_datetime(expected)
         self.min_dt = dt_min or timedelta(0)
         self.max_dt = dt_max or timedelta(0)
 
-    def _convert_to_datetime(self, expected: datetime | date | str) -> datetime | date:
-        if isinstance(expected, datetime):
-            return expected
-        if isinstance(expected, str):
-            _result = string_to_datetime(expected, format_=self.dt_str_format, tz=self.tz)
-            return _result if self.tz is None or _result.tzinfo else _result.replace(tzinfo=self.tz)
-        raise TypeError(f"Expected {expected} is {type(expected)}. Can only accept objects that are datetime or string.")
+    def _convert_to_datetime(self, datetime_value: datetime | date | str) -> datetime | date:
+        if isinstance(datetime_value, datetime):
+            return datetime_value
+        if isinstance(datetime_value, str):
+            for dt_str_format in self.dt_str_format:
+                try:
+                    _result = string_to_datetime(datetime_value, format_=dt_str_format, tz=self.tz)
+                    return _result if self.tz is None or _result.tzinfo else _result.replace(tzinfo=self.tz)
+                except Exception:
+                    pass
+            raise ValueError(f"No format fit to decode '{datetime_value}")
+        raise TypeError(f"Expected {datetime_value} is {type(datetime_value)}. Can only accept objects that are datetime or string.")
 
     def __eq__(self, other):
         if isinstance(other, str):
