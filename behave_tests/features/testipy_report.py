@@ -89,7 +89,8 @@ _testipy_reporting = TestipyReporting()
 class TestipyStep(TestStep):
     def __init__(self, context: Context, description: str, reason_of_state: str = "ok", td: TestDetails = None):
         td = td or _testipy_reporting.get_current_test(context)
-        assert td is not None, f"Cannot execute step without TestDetails"
+        if td is None:
+            raise ValueError(f"Cannot execute step without TestDetails")
         super(TestipyStep, self).__init__(td, description, reason_of_state)
 
 
@@ -252,6 +253,7 @@ def start_scenario(context: Context, scenario: Scenario | ScenarioOutline):
 
     _call_env_before_scenario(context, scenario)
 
+
 def end_scenario(context: Context, scenario: Scenario | ScenarioOutline):
     _call_env_after_scenario(context, scenario)
 
@@ -339,10 +341,20 @@ def _log_messages_to_test(context: Context, current_test: TestDetails):
 
 
 def _call_env_before_all(context: Context, feature: Feature):
+    def get_env_file_path(file_path: str) -> str:
+        while True:
+            if BASE_FOLDER.endswith(file_path):
+                return ""
+            env_filename = os.path.join(file_path, ORIGINAL_ENVIRONMENT_PY)
+            if os.path.exists(env_filename):
+                _load_steps_from_folder(file_path)
+                return env_filename
+            file_path = os.path.dirname(file_path)
+
     context.testipy_env_py_exception = None
     try:
         file_path: str = os.path.dirname(feature.filename)
-        env_filename = os.path.join(file_path, ORIGINAL_ENVIRONMENT_PY)
+        env_filename = get_env_file_path(file_path)
         _load_steps_from_folder(file_path)
 
         pd: PackageDetails = _testipy_reporting.get_current_package()
@@ -410,6 +422,7 @@ def _call_env_before_feature(context: Context, feature: Feature):
         _close_any_unclosed_tests(context)
         context.testipy_current_test = None
 
+
 def _call_env_after_feature(context: Context, feature: Feature):
     module = _testipy_reporting.get_env_py_module()
     if module is not None and hasattr(module, "before_feature"):
@@ -429,6 +442,7 @@ def _call_env_before_scenario(context: Context, scenario: Scenario):
     if module is not None and hasattr(module, "before_scenario"):
         with TestipyStep(context, "Before Scenario"):
             module.before_scenario(context, scenario)
+
 
 def _call_env_after_scenario(context: Context, scenario: Scenario):
     module = _testipy_reporting.get_env_py_module()
@@ -472,6 +486,7 @@ def _get_suite_attr_by_name(package_attr: PackageAttr, suite_name: str, suite_fi
         suite_attr.suite_id = package_attr.get_max_suite_id()
 
     return suite_attr
+
 
 def _get_test_attr_by_name(suite_attr: SuiteAttr, test_name: str) -> TestMethodAttr:
     test_attr: TestMethodAttr = suite_attr.get_test_method_by_name(test_name)
