@@ -4,6 +4,7 @@ from zoneinfo import ZoneInfo
 
 DATETIME_FORMAT_DEFAULT = "%Y-%m-%d %H:%M:%S"
 DATETIME_FORMAT_ISO = "%Y-%m-%dT%H:%M:%S"
+DATETIME_FORMAT_OFFSET = "%Y-%m-%dT%H:%M:%S%z"
 DATE_FORMAT_ISO = "%Y-%m-%d"
 
 
@@ -81,7 +82,14 @@ def isoformat_long(datetime_: datetime, /, *, sep: Literal["T", " "] = "T") -> s
 def string_to_datetime(datetime_: str, /, *, format_: str = DATETIME_FORMAT_DEFAULT, tz: tzinfo | str = timezone.utc) -> datetime:
     if isinstance(tz, str):
         tz = ZoneInfo(tz)
-    return datetime.strptime(datetime_, format_).replace(tzinfo=tz)
+    _result = datetime.strptime(datetime_, format_)
+    if tz is None:
+        return _result
+    else:
+        if _result.tzinfo is None:
+            return _result.replace(tzinfo=tz)
+        else:
+            return _result.astimezone(tz)
 
 
 def string_to_date(date_: str, /, *, format_: str = DATE_FORMAT_ISO) -> date:
@@ -96,57 +104,78 @@ def date_to_string(date_: date, /, format_: str = DATE_FORMAT_ISO) -> str:
     return date_.strftime(format_)
 
 
+class DateCompare:
+    def __init__(
+            self,
+            expected: date | str,
+            dt_min: timedelta | None = None,
+            dt_max: timedelta | None = None,
+            /, *,
+            dt_str_format: str | list[str] = DATE_FORMAT_ISO,
+    ):
+        self.dt_str_format: list[str] | str = dt_str_format if isinstance(dt_str_format, list) else [dt_str_format]
+        self.expected = self._convert_to_date(expected)
+        self.min_dt = dt_min or timedelta(0)
+        self.max_dt = dt_max or timedelta(0)
+
+    def _convert_to_date(self, date_value: date | str) -> date:
+        if isinstance(date_value, date):
+            return date_value
+        if isinstance(date_value, str):
+            for dt_str_format in self.dt_str_format:
+                try:
+                    return string_to_date(date_value, format_=dt_str_format)
+                except Exception:
+                    pass
+            raise ValueError(f"No format fit to decode '{date_value}")
+        raise TypeError(f"Date {date_value} is {type(date_value)}. Can only accept objects that are date or string.")
+
+    def __eq__(self, other):
+        if isinstance(other, str):
+            other = self._convert_to_date(other)
+        return self.expected - self.min_dt <= other <= self.expected + self.max_dt
+
+    def __str__(self):
+        return f"[{self.expected - self.min_dt} .. {self.expected + self.max_dt}]"
+
+    __repr__ = __str__
+
+
 class DatetimeCompare:
     def __init__(
             self,
             expected: datetime | date | str,
             dt_min: timedelta | None = None,
             dt_max: timedelta | None = None,
-            *,
-            dt_format: str = DATETIME_FORMAT_DEFAULT,
-            expected_type: Literal["datetime", "date"] = "datetime",
+            /, *,
+            dt_str_format: str | list[str] = DATETIME_FORMAT_DEFAULT,
+            tz: tzinfo | str | None = None,
     ):
-        self.expected_type = self._auto_detect_type(expected, expected_type)
-        self.dt_format = dt_format
+        self.tz = ZoneInfo(tz) if isinstance(tz, str) else tz
+        self.dt_str_format: list[str] | str = dt_str_format if isinstance(dt_str_format, list) else [dt_str_format]
         self.expected = self._convert_to_datetime(expected)
         self.min_dt = dt_min or timedelta(0)
         self.max_dt = dt_max or timedelta(0)
 
-    @staticmethod
-    def _auto_detect_type(expected: datetime | date | str, expected_type: Literal["datetime", "date"]):
-        if isinstance(expected, datetime):
-            return "datetime"
-        if isinstance(expected, date):
-            return "date"
-        if expected_type not in ("datetime", "date"):
-            raise TypeError(f"Parameter expected_type is '{expected_type}'. Can only accept 'datetime' or 'date' strings")
-        return expected_type
-
-    def _convert_to_datetime(self, expected: datetime | date | str) -> datetime | date:
-        if isinstance(expected, (datetime, date)):
-            return expected
-        if isinstance(expected, str):
-            if self.expected_type == "datetime":
-                return string_to_datetime(expected, format_=self.dt_format)
-            if self.expected_type == "date":
-                return string_to_date(expected, format_=self.dt_format)
-            raise TypeError(f"Unknown {self.expected_type=}!")
-        raise TypeError(f"Expected {expected} is {type(expected)}. Can only accept objects that are datetime or date or string.")
+    def _convert_to_datetime(self, datetime_value: datetime | date | str) -> datetime | date:
+        if isinstance(datetime_value, datetime):
+            return datetime_value
+        if isinstance(datetime_value, str):
+            for dt_str_format in self.dt_str_format:
+                try:
+                    _result = string_to_datetime(datetime_value, format_=dt_str_format, tz=self.tz)
+                    return _result if self.tz is None or _result.tzinfo else _result.replace(tzinfo=self.tz)
+                except Exception:
+                    pass
+            raise ValueError(f"No format fit to decode '{datetime_value}")
+        raise TypeError(f"Expected {datetime_value} is {type(datetime_value)}. Can only accept objects that are datetime or string.")
 
     def __eq__(self, other):
         if isinstance(other, str):
             other = self._convert_to_datetime(other)
-
-        if not isinstance(other, type(self.expected)):
-            raise TypeError(f"Expected '{self.expected}' is {type(self.expected_type)}, but other '{other}' is {type(other)}")
-
-        if isinstance(other, (datetime, date)):
-            return self.expected - self.min_dt <= other <= self.expected + self.max_dt
-
-        raise TypeError(f"Other '{other}' is {type(other)}. Can only accept datetime/date/str objects.")
+        return self.expected - self.min_dt <= other <= self.expected + self.max_dt
 
     def __str__(self):
         return f"[{self.expected - self.min_dt} .. {self.expected + self.max_dt}]"
 
-    def __repr__(self):
-        return f"[{self.expected - self.min_dt} .. {self.expected + self.max_dt}]"
+    __repr__ = __str__
