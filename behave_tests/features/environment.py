@@ -2,13 +2,15 @@ import contextlib
 import io
 
 from behave import fixture, use_fixture
-from behave.model import Feature, Scenario, ScenarioOutline, Step
+from behave.model import Feature, Scenario, ScenarioOutline, Step, Tag
 from behave.runner import Context
 
 from behave_tests.features.common import set_up_logging
 from behave_tests.features.testipy_report import (
     tear_up,
     tear_down,
+    start_tag,
+    end_tag,
     start_feature,
     end_feature,
     start_scenario,
@@ -25,6 +27,13 @@ def before_all(context: Context):
 def after_all(context: Context):
     use_fixture(capture_logs, context)
     tear_down(context)
+
+
+def before_tag(context: Context, tag: Tag):
+    start_tag(context, tag)
+
+def after_tag(context: Context, tag: Tag):
+    end_tag(context, tag)
 
 
 def before_feature(context: Context, feature: Feature):

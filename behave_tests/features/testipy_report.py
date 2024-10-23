@@ -1,7 +1,7 @@
 import os
 import traceback
 
-from behave.model import Feature, Scenario, ScenarioOutline, Step, Status
+from behave.model import Feature, Scenario, ScenarioOutline, Tag, Step, Status
 from behave.runner import Context
 from testipy.helpers.handle_assertions import ExpectedError
 
@@ -188,6 +188,14 @@ def tear_down(context: Context):
     get_rm()._teardown_("")
 
     _testipy_reporting.tear_down_executed = True
+
+
+def start_tag(context: Context, tag: Tag):
+    _call_env_before_tag(context, tag)
+
+
+def end_tag(context: Context, tag: Tag):
+    _call_env_after_tag(context, tag)
 
 
 def start_feature(context: Context, feature: Feature):
@@ -460,6 +468,18 @@ def _call_env_after_scenario(context: Context, scenario: Scenario):
     if module is not None and hasattr(module, "after_scenario"):
         with TestipyStep(context, "after_scenario"):
             module.after_scenario(context, scenario)
+
+
+def _call_env_before_tag(context: Context, tag: Tag):
+    module = _testipy_reporting.get_env_py_module()
+    if module is not None and hasattr(module, "before_tag"):
+        module.before_tag(context, tag)
+
+
+def _call_env_after_tag(context: Context, tag: Tag):
+    module = _testipy_reporting.get_env_py_module()
+    if module is not None and hasattr(module, "after_tag"):
+        module.after_tag(context, tag)
 
 
 def _save_behave_context(context: Context):
