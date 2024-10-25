@@ -8,7 +8,7 @@ from behave.model import Feature, Scenario, ScenarioOutline, Tag, Step, Status
 from behave.runner import Context
 from testipy.helpers.handle_assertions import ExpectedError
 
-from behave_tests.features.common import import_steps_modules, load_module, Singleton
+from behave_tests.features.common import import_steps_modules, load_module, Singleton, get_data_bucket_from_context
 
 # Import all testipy methods here
 from testipy.configs.enums_data import STATE_SKIPPED, STATE_PASSED, STATE_FAILED, STATE_FAILED_KNOWN_BUG
@@ -498,6 +498,7 @@ def _call_env_after_tag(context: Context, tag: Tag):
 
 
 def _save_behave_context(context: Context):
+    get_data_bucket_from_context(context).clear()
     _testipy_reporting.package_before_all_context = list(context.__dict__["_stack"])
 
 
