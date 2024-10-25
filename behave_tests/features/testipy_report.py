@@ -8,7 +8,10 @@ from behave.model import Feature, Scenario, ScenarioOutline, Tag, Step, Status
 from behave.runner import Context
 from testipy.helpers.handle_assertions import ExpectedError
 
-from behave_tests.features.common import import_steps_modules, load_module, Singleton, get_data_bucket_from_context
+from behave_tests.features.common import (
+    import_steps_modules, load_module, Singleton,
+    get_data_bucket_from_context, should_run
+)
 
 # Import all testipy methods here
 from testipy.configs.enums_data import STATE_SKIPPED, STATE_PASSED, STATE_FAILED, STATE_FAILED_KNOWN_BUG
@@ -103,7 +106,7 @@ class TestipyReporting(metaclass=Singleton):
                 if raise_if_not_found:
                     raise ValueError(f"package {package_name} not found!")
                 pat = PackageAttr(package_name)
-            self.testipy_started_packages[package_name] = pd = self.testipy_current_package = get_rm().startPackage(pat)
+            self.testipy_started_packages[package_name] = pd = get_rm().startPackage(pat)
 
         self.testipy_current_package = pd
         return self.get_current_package()
@@ -168,15 +171,10 @@ def tear_up(context: Context):
             tma.test_number = " ".join([str(tag)[3:] for tag in scenario.tags if str(tag).startswith("tc:")])
         return tma
 
-    def _should_run(
-            context: Context, iterator: list[Feature | ScenarioOutline | Scenario]
-    ) -> list[Feature | ScenarioOutline | Scenario]:
-        return [x for x in iterator if x.should_run(config=context._config)]
-
     packages: dict[str, PackageAttr] = {}
     _testipy_reporting.testipy_selected_tests = packages
 
-    for feature in _should_run(context, iterator=context._runner.features):
+    for feature in should_run(context, iterator=context._runner.features):
         package_name, suite_name, filename = get_package_and_suite_by_filename(feature)
 
         pat = packages.get(package_name)
@@ -189,9 +187,9 @@ def tear_up(context: Context):
             sat.tags = {str(tag) for tag in feature.tags}
             sat.suite_obj = feature
 
-        for scenario in _should_run(context, iterator=feature.scenarios):
+        for scenario in should_run(context, iterator=feature.scenarios):
             if isinstance(scenario, ScenarioOutline):
-                for example in _should_run(context, iterator=scenario.scenarios):
+                for example in should_run(context, iterator=scenario.scenarios):
                     tma = _create_test_attr(sat, example.name, example, comment="\n".join(scenario.description))
             else:
                 tma = _create_test_attr(sat, scenario.name, scenario, comment="\n".join(scenario.description))
