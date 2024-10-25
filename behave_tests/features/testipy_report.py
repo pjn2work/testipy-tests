@@ -405,7 +405,7 @@ def _call_env_before_all(context: Context, env_folder_path: str):
             env_filename = os.path.join(env_folder_path, ORIGINAL_ENVIRONMENT_PY)
             _testipy_reporting.testipy_env_py.module = module = load_module(env_filename, raise_on_error=False)
             if module is not None and hasattr(module, "before_all"):
-                td = start_independent_test(context, "Before All")
+                td = start_independent_test(context, "before_all")
                 context.testipy_current_test = td
                 try:
                     module.before_all(context)
@@ -436,7 +436,7 @@ def _call_env_after_all(context: Context):
 
     module = _testipy_reporting.get_env_py_module()
     if module is not None and hasattr(module, "after_all"):
-        td = start_independent_test(context, "After All")
+        td = start_independent_test(context, "after_all")
         context.testipy_current_test = td
         try:
             module.after_all(context)
@@ -455,7 +455,7 @@ def _call_env_after_all(context: Context):
 def _call_env_before_feature(context: Context, feature: Feature):
     module = _testipy_reporting.get_env_py_module()
     if module is not None and hasattr(module, "before_feature"):
-        td = start_independent_test(context, "Before Feature")
+        td = start_independent_test(context, "before_feature")
         context.testipy_current_test = td
 
         with TestipyStep(context, "before_feature"):
@@ -468,8 +468,8 @@ def _call_env_before_feature(context: Context, feature: Feature):
 
 def _call_env_after_feature(context: Context, feature: Feature):
     module = _testipy_reporting.get_env_py_module()
-    if module is not None and hasattr(module, "before_feature"):
-        td = start_independent_test(context, "After Feature")
+    if module is not None and hasattr(module, "after_feature"):
+        td = start_independent_test(context, "after_feature")
         context.testipy_current_test = td
 
         with TestipyStep(context, "after_feature"):
