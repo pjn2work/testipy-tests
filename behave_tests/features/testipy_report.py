@@ -1,6 +1,9 @@
 import os
 import traceback
 
+from dataclasses import dataclass
+from typing import Callable
+
 from behave.model import Feature, Scenario, ScenarioOutline, Tag, Step, Status
 from behave.runner import Context
 from testipy.helpers.handle_assertions import ExpectedError
@@ -34,23 +37,35 @@ class Singleton(type):
 
 
 class TestipyReporting(metaclass=Singleton):
+
+    @dataclass
+    class EnvironmentPy:
+        module: Callable = None
+        folder_path: str = ""
+        sd: SuiteDetails = None
+
+        def clear(self):
+            self.module = None
+            self.folder_path = ""
+            self.sd = None
+
     tear_up_executed: bool = False
     tear_down_executed: bool = False
 
     package_before_all_context: list = []
     rm: ReportManager = None
+    loaded_steps_folders: set = set()
 
     testipy_selected_tests: dict[str, PackageAttr] = None
+    testipy_started_packages: dict[str, PackageDetails] = {}
     testipy_current_package: PackageDetails = None
-    testipy_env_py_module = None
-    testipy_env_py_module_filepath: str = ""
-    testipy_env_py_suite: SuiteDetails = None
+    testipy_env_py = EnvironmentPy()
 
-    def get_env_py_module(self):
-        return self.testipy_env_py_module
+    def get_env_py_module(self) -> Callable:
+        return self.testipy_env_py.module
 
     def get_env_py_suite(self) -> SuiteDetails:
-        return self.testipy_env_py_suite
+        return self.testipy_env_py.sd
 
     def get_selected_tests(self) -> dict[str, PackageAttr]:
         return self.testipy_selected_tests
@@ -83,6 +98,28 @@ class TestipyReporting(metaclass=Singleton):
             level=level,
             attachment=attachment
         )
+
+    def start_new_package(self, package_name: str, /, *, raise_if_not_found: bool) -> PackageDetails:
+        if package_name in self.testipy_started_packages:
+            pd = self.testipy_started_packages[package_name]
+        else:
+            pd = self.get_current_package()
+            if pd and pd.name != package_name:
+                self.end_package(pd)
+
+            pat: PackageAttr = _testipy_reporting.get_selected_tests().get(package_name)
+            if pat is None:
+                if raise_if_not_found:
+                    raise ValueError(f"package {package_name} not found!")
+                pat = PackageAttr(package_name)
+            self.testipy_started_packages[package_name] = pd = self.testipy_current_package = get_rm().startPackage(pat)
+
+        self.testipy_current_package = pd
+        return self.get_current_package()
+
+    def end_package(self, pd: PackageDetails):
+        if pd is not None and pd.get_endtime() is None:
+            get_rm().end_package(pd)
 
 
 _testipy_reporting = TestipyReporting()
@@ -151,13 +188,13 @@ def tear_up(context: Context):
     for feature in _should_run(context, iterator=context._runner.features):
         package_name, suite_name, filename = get_package_and_suite_by_filename(feature)
 
-        pa = packages.get(package_name)
-        if pa is None:
-            packages[package_name] = pa = PackageAttr(package_name)
+        pat = packages.get(package_name)
+        if pat is None:
+            packages[package_name] = pat = PackageAttr(package_name)
 
-        sat = pa.get_suite_by_name(suite_name)
+        sat = pat.get_suite_by_name(suite_name)
         if sat is None:
-            sat = SuiteAttr(pa, filename, suite_name, comment="\n".join(feature.description))
+            sat = SuiteAttr(pat, filename, suite_name, comment="\n".join(feature.description))
             sat.tags = {str(tag) for tag in feature.tags}
             sat.suite_obj = feature
 
@@ -180,11 +217,9 @@ def tear_down(context: Context):
     if _testipy_reporting.tear_down_executed:
         return
 
-    pd: PackageDetails = _testipy_reporting.get_current_package()
-
     _call_env_after_all(context)
 
-    get_rm().end_package(pd)
+    _testipy_reporting.end_package(_testipy_reporting.get_current_package())
     get_rm()._teardown_("")
 
     _testipy_reporting.tear_down_executed = True
@@ -198,52 +233,38 @@ def end_tag(context: Context, tag: Tag):
     _call_env_after_tag(context, tag)
 
 
-def start_feature(context: Context, feature: Feature):
-    # get package attributes based on feature filename
-    package_name, suite_name, _ = get_package_and_suite_by_filename(feature)
-    tests: dict[str, PackageAttr] = _testipy_reporting.get_selected_tests()
-    pat: PackageAttr = tests.get(package_name)
-    if pat is None:
-        raise ValueError(f"package {package_name} not found!")
-
+def __get_package_for_feature(context: Context, feature: Feature, feature_package_name: str) -> PackageDetails:
     feature_folder_path = os.path.dirname(feature.filename)
     env_folder_path = _get_env_folder_path(feature_folder_path)
+    is_new_env = env_folder_path != _testipy_reporting.testipy_env_py.folder_path or _testipy_reporting.get_current_package() is None
+    is_same_folder_feature_vs_env = feature_folder_path == env_folder_path
 
-    pd: PackageDetails = _testipy_reporting.get_current_package()
-    if pd is None:
-        _testipy_reporting.testipy_current_package = pd = get_rm().startPackage(pat)
+    pd: PackageDetails = _testipy_reporting.start_new_package(feature_package_name, raise_if_not_found=True)
+
+    if is_new_env:
+        _call_env_after_all(context)
         _call_env_before_all(context, env_folder_path)
-        if feature_folder_path != env_folder_path:
-            _load_steps_from_folder(feature_folder_path)
-    elif pd.name == package_name:
-        _load_behave_context(context)
-        if context.testipy_env_py_exception:
-            raise context.testipy_env_py_exception
     else:
-        is_new_env = env_folder_path != _testipy_reporting.testipy_env_py_module_filepath
+        _load_behave_context(context)
 
-        if is_new_env:
-            _call_env_after_all(context)
+    if not is_same_folder_feature_vs_env:
+        _load_steps_from_folder(feature_folder_path)
 
-        get_rm().end_package(pd)
-        _testipy_reporting.testipy_current_package = pd = get_rm().startPackage(pat)
+    return pd
 
-        if is_new_env:
-            _call_env_before_all(context, env_folder_path)
-        else:
-            _load_behave_context(context)
 
-        if feature_folder_path != env_folder_path:
-            _load_steps_from_folder(feature_folder_path)
+def start_feature(context: Context, feature: Feature):
+    feature_package_name, suite_name, _ = get_package_and_suite_by_filename(feature)
+    _testipy_reporting.testipy_current_package = pd = __get_package_for_feature(context, feature, feature_package_name)
 
-    sat: SuiteAttr = pat.get_suite_by_name(suite_name)
+    sat: SuiteAttr = pd.package_attr.get_suite_by_name(suite_name)
     if sat is None:
         raise ValueError(f"suite {suite_name} not found!")
 
-    sd: SuiteDetails = get_rm().startSuite(pd, sat)
-    context.testipy_current_suite = sd
+    context.testipy_current_suite = get_rm().startSuite(pd, sat)
 
-    _call_env_before_feature(context, feature)
+    if context.testipy_env_py_exception is None:
+        _call_env_before_feature(context, feature)
 
 
 def end_feature(context: Context, feature: Feature):
@@ -273,11 +294,15 @@ def start_scenario(context: Context, scenario: Scenario | ScenarioOutline):
     td: TestDetails = get_rm().startTest(sd.set_current_test_method_attr(tma), test_name=test_name, usecase=usecase_name)
     context.testipy_current_test = td
 
-    _call_env_before_scenario(context, scenario)
+    if context.testipy_env_py_exception is None:
+        _call_env_before_scenario(context, scenario)
+    else:
+        raise context.testipy_env_py_exception
 
 
 def end_scenario(context: Context, scenario: Scenario | ScenarioOutline):
-    _call_env_after_scenario(context, scenario)
+    if context.testipy_env_py_exception is None:
+        _call_env_after_scenario(context, scenario)
 
     current_test: TestDetails = _testipy_reporting.get_current_test(context)
 
@@ -286,7 +311,7 @@ def end_scenario(context: Context, scenario: Scenario | ScenarioOutline):
         endTest(get_rm(), current_test)
     else:
         status = _get_status(scenario.status)
-        reason_of_state = "ok" if status == STATE_PASSED else "undefined"
+        reason_of_state = "ok" if status == STATE_PASSED else scenario.error_message
         current_test.rm.end_test(current_test, status, reason_of_state, scenario.exception)
     context.testipy_current_test = None
 
@@ -362,22 +387,23 @@ def _get_env_folder_path(folder_path: str) -> str:
     return ""
 
 
-def _call_env_before_all(context: Context, env_file_path: str):
+def _call_env_before_all(context: Context, env_folder_path: str):
     context.testipy_env_py_exception = None
-    _testipy_reporting.testipy_env_py_module_filepath = env_file_path
+    _testipy_reporting.testipy_env_py.folder_path = env_folder_path
+    env_package_name = env_folder_path.replace(os.path.sep, separator_package)
 
-    if env_file_path:
+    if env_folder_path:
         try:
-            pd: PackageDetails = _testipy_reporting.get_current_package()
+            pd: PackageDetails = _testipy_reporting.start_new_package(env_package_name, raise_if_not_found=False)
             sat: SuiteAttr = _get_suite_attr_by_name(pd.package_attr, ORIGINAL_ENVIRONMENT_PY, ORIGINAL_ENVIRONMENT_PY)
             sd: SuiteDetails = get_rm().startSuite(pd, sat)
 
-            _testipy_reporting.testipy_env_py_suite = context.testipy_current_suite = sd
+            _testipy_reporting.testipy_env_py.sd = context.testipy_current_suite = sd
 
-            _load_steps_from_folder(env_file_path)
+            _load_steps_from_folder(env_folder_path)
 
-            env_filename = os.path.join(env_file_path, ORIGINAL_ENVIRONMENT_PY)
-            _testipy_reporting.testipy_env_py_module = module = load_module(env_filename, raise_on_error=False)
+            env_filename = os.path.join(env_folder_path, ORIGINAL_ENVIRONMENT_PY)
+            _testipy_reporting.testipy_env_py.module = module = load_module(env_filename, raise_on_error=False)
             if module is not None and hasattr(module, "before_all"):
                 td = start_independent_test(context, "Before All")
                 context.testipy_current_test = td
@@ -387,7 +413,7 @@ def _call_env_before_all(context: Context, env_file_path: str):
                     get_rm().test_step(td, state=STATE_FAILED, reason_of_state=str(exc), description=f"{ORIGINAL_ENVIRONMENT_PY} before_all call", exc_value=exc)
                     end_independent_test(td)
                     _close_any_unclosed_tests(context)
-                    raise RuntimeError(f"Failed to call {env_file_path} before_all.\n{exc}") from exc
+                    raise RuntimeError(f"Failed to call {env_folder_path}/{ORIGINAL_ENVIRONMENT_PY} before_all.\n{exc}") from exc
 
                 end_independent_test(td)
                 _close_any_unclosed_tests(context)
@@ -422,10 +448,8 @@ def _call_env_after_all(context: Context):
 
     context.testipy_current_test = None
     get_rm().end_suite(sd)
-
-    _testipy_reporting.testipy_env_py_module = None
-    _testipy_reporting.testipy_env_py_module_filepath = ""
-    _testipy_reporting.testipy_env_py_suite = None
+    _testipy_reporting.end_package(sd.package)
+    _testipy_reporting.testipy_env_py.clear()
 
 
 def _call_env_before_feature(context: Context, feature: Feature):
@@ -487,7 +511,8 @@ def _save_behave_context(context: Context):
 
 
 def _load_behave_context(context: Context):
-    context.__dict__["_stack"] = list(_testipy_reporting.package_before_all_context)
+    if _testipy_reporting.package_before_all_context:
+        context.__dict__["_stack"] = list(_testipy_reporting.package_before_all_context)
 
 
 def start_independent_test(context: Context, test_name: str, usecase: str = "") -> TestDetails:
@@ -529,5 +554,7 @@ def _get_test_attr_by_name(suite_attr: SuiteAttr, test_name: str) -> TestMethodA
     return test_attr
 
 
-def _load_steps_from_folder(file_path: str):
-    import_steps_modules(os.path.join(file_path, ORIGINAL_STEPS_FOLDER))
+def _load_steps_from_folder(folder_path: str):
+    if folder_path not in _testipy_reporting.loaded_steps_folders:
+        _testipy_reporting.loaded_steps_folders.add(folder_path)
+        import_steps_modules(os.path.join(folder_path, ORIGINAL_STEPS_FOLDER))
