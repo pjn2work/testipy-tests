@@ -8,7 +8,7 @@ from behave.model import Feature, Scenario, ScenarioOutline, Tag, Step, Status
 from behave.runner import Context
 from testipy.helpers.handle_assertions import ExpectedError
 
-from behave_tests.features.common import import_steps_modules, load_module
+from behave_tests.features.common import import_steps_modules, load_module, Singleton
 
 # Import all testipy methods here
 from testipy.configs.enums_data import STATE_SKIPPED, STATE_PASSED, STATE_FAILED, STATE_FAILED_KNOWN_BUG
@@ -25,15 +25,6 @@ ORIGINAL_ENVIRONMENT_PY = "environment_.py"
 ORIGINAL_STEPS_FOLDER = "steps_"
 BASE_FOLDER = os.path.dirname(__file__)
 TESTIPY_ARGS = f"-tf {BASE_FOLDER} -r web -r-web-port 9204 -rid 1 -r log"
-
-
-class Singleton(type):
-    _instances = {}
-
-    def __call__(cls, *args, **kwargs):
-        if cls not in cls._instances:
-            cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
-        return cls._instances[cls]
 
 
 class TestipyReporting(metaclass=Singleton):
