@@ -1,3 +1,4 @@
+from functools import partial
 from typing import Any, Iterable
 
 from behave.model import Feature, Scenario, ScenarioOutline, Tag
@@ -23,8 +24,17 @@ def get_from_context(context: Context, key: str) -> Any:
     return db[key]
 
 
-def filter_tags_with_prefix(tags: Iterable[Tag], /, *, prefix: str) -> set[Tag]:
-    return {tag for tag in tags if tag.startswith(prefix)}
+def has_in_context(context: Context, key: str) -> bool:
+    db = get_data_bucket_from_context(context)
+    return key in db
+
+
+def filter_tags_with_prefix(tags: Iterable[Tag], /, *, prefix: str, trim_prefix: bool) -> set[Tag]:
+    return {
+        tag.removeprefix(prefix) if trim_prefix else tag
+        for tag in tags
+        if tag.startswith(prefix)
+    }
 
 
 def should_run(
@@ -33,21 +43,27 @@ def should_run(
     return [x for x in iterator if x.should_run(config=context._config)]
 
 
-def get_all_tags_with_prefix(context: Context, /, *, prefix: str) -> set[Tag]:
+def get_all_tags_with_prefix(
+        context: Context, /, *,
+        prefix: str,
+        trim_prefix: bool = True,
+        include_features: bool = True,
+        include_scenarios: bool = True,
+        include_examples: bool = True,
+) -> set[Tag]:
     tags = set()
     for feature in should_run(context, iterator=context._runner.features):
-        tags.update(filter_tags_with_prefix(feature.tags, prefix=prefix))
+        if include_features:
+            tags.update(filter_tags_with_prefix(feature.tags, prefix=prefix, trim_prefix=trim_prefix))
         for scenario in should_run(context, iterator=feature.scenarios):
-            tags.update(filter_tags_with_prefix(scenario.tags, prefix=prefix))
-            if isinstance(scenario, ScenarioOutline):
+            if include_scenarios:
+                tags.update(filter_tags_with_prefix(scenario.tags, prefix=prefix, trim_prefix=trim_prefix))
+            if isinstance(scenario, ScenarioOutline) and include_examples:
                 for example in should_run(context, iterator=scenario.scenarios):
-                    tags.update(filter_tags_with_prefix(example.tags, prefix=prefix))
+                    tags.update(filter_tags_with_prefix(example.tags, prefix=prefix, trim_prefix=trim_prefix))
     return tags
 
 
-def get_tag_values_for_prefix(tags: Iterable[Tag], /, *, tag_prefix: str) -> list[str]:
-    return [
-        tag.removeprefix(tag_prefix)
-        for tag in tags
-        if tag.startswith(tag_prefix)
-    ]
+get_all_features_tags_with_prefix = partial(get_all_tags_with_prefix, include_features=True, include_scenarios=False, include_examples=False)
+get_all_scenarios_tags_with_prefix = partial(get_all_tags_with_prefix, include_features=False, include_scenarios=True, include_examples=False)
+get_all_examples_tags_with_prefix = partial(get_all_tags_with_prefix, include_features=False, include_scenarios=False, include_examples=True)

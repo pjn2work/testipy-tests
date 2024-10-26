@@ -1,4 +1,5 @@
 @my_feature_tag_07_5
+@setup.sftp:cli2
 Feature: Tutorial07_5
 
 
