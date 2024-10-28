@@ -200,6 +200,7 @@ def tear_up(context: Context):
     _testipy_reporting.tear_up_executed = True
 
     context.testipy_reporting = _testipy_reporting
+    get_data_bucket_from_context(context)
 
 
 def tear_down(context: Context):
@@ -496,7 +497,6 @@ def _call_env_after_tag(context: Context, tag: Tag):
 
 
 def _save_behave_context(context: Context):
-    get_data_bucket_from_context(context).clear()
     _testipy_reporting.package_before_all_context = list(context.__dict__["_stack"])
 
 

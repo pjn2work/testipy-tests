@@ -5,7 +5,7 @@ Feature: PetStore
 
 
   Scenario: Create valid pet - YAML
-    And I have the following YAML data
+    And I have the following YAML data, as data
       """
       id: 17
       name: Sissi
@@ -22,11 +22,11 @@ Feature: PetStore
       status: available
       """
     When post data to pet store, I receive a 200 status code
-    Then I can get the same pet from store, and receive a 200 status code
+    Then I can get the data pet from store, and receive a 200 status code
 
 
   Scenario: Create valid pet - JSON
-    And I have the following JSON data
+    And I have the following JSON data, as data
       """
       {
         "id": 18,
@@ -52,11 +52,11 @@ Feature: PetStore
       }
       """
     When post data to pet store, I receive a 200 status code
-    Then I can get the same pet from store, and receive a 200 status code
+    Then I can get the data pet from store, and receive a 200 status code
 
 
   Scenario: Create invalid pet
-    And I have the following YAML data
+    And I have the following YAML data, as data
       """
       name: Another Sissi
       """

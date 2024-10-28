@@ -24,7 +24,7 @@ def get_from_context(context: Context, key: str) -> Any:
     return db[key]
 
 
-def has_in_context(context: Context, key: str) -> bool:
+def has_key_in_context(context: Context, key: str) -> bool:
     db = get_data_bucket_from_context(context)
     return key in db
 

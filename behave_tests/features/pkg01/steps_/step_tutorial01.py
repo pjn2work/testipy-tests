@@ -1,4 +1,4 @@
-from behave import given, when, then
+from behave import when, then
 from behave.runner import Context
 
 
