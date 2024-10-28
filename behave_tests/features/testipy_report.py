@@ -200,7 +200,6 @@ def tear_up(context: Context):
     _testipy_reporting.tear_up_executed = True
 
     context.testipy_reporting = _testipy_reporting
-    clear_context_data_bucket(context)
 
 
 def tear_down(context: Context):
@@ -378,6 +377,7 @@ def _get_env_folder_path(folder_path: str) -> str:
 
 
 def _call_env_before_all(context: Context, env_folder_path: str):
+    clear_context_data_bucket(context)
     context.testipy_env_py_exception = None
     _testipy_reporting.testipy_env_py.folder_path = env_folder_path
     env_package_name = env_folder_path.replace(os.path.sep, separator_package)
@@ -414,6 +414,8 @@ def _call_env_before_all(context: Context, env_folder_path: str):
             context.testipy_env_py_exception = exc
             _save_behave_context(context)
             raise
+    else:
+        _save_behave_context(context)
 
 
 def _call_env_after_all(context: Context):
