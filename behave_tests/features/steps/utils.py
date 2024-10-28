@@ -3,7 +3,7 @@ import yaml
 from behave import given, step
 from behave.runner import Context
 
-from behave_tests.features.common import get_logger, save_into_context, get_from_context
+from behave_tests.features.common import get_logger, save_into_context, get_from_context, clear_context_data_bucket
 from common.utils.datetimes import now
 
 
@@ -35,6 +35,11 @@ def save_into_context_data(context: Context, dtype: str, key: str):
 @step("save current datetime in context as {key}")
 def save_datetime_into_context(context: Context, key: str):
     save_into_context(context, key, now())
+
+
+@step("context clear data bucket")
+def clear_context_data(context: Context):
+    clear_context_data_bucket(context)
 
 
 @step("context clear data in {key}")

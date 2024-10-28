@@ -40,6 +40,7 @@ Feature: Showing off behave (tutorial01)
 
 
   Scenario: Data validations
+    And context clear data bucket
     When I have the following YAML data, as table1
       """
       - name: My Long Name

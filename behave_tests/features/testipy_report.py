@@ -10,7 +10,7 @@ from testipy.helpers.handle_assertions import ExpectedError
 
 from behave_tests.features.common import (
     import_steps_modules, load_module, Singleton,
-    get_data_bucket_from_context, should_run
+    clear_context_data_bucket, should_run
 )
 
 # Import all testipy methods here
@@ -200,7 +200,7 @@ def tear_up(context: Context):
     _testipy_reporting.tear_up_executed = True
 
     context.testipy_reporting = _testipy_reporting
-    get_data_bucket_from_context(context)
+    clear_context_data_bucket(context)
 
 
 def tear_down(context: Context):

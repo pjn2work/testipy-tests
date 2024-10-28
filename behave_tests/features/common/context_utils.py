@@ -29,6 +29,11 @@ def has_key_in_context(context: Context, key: str) -> bool:
     return key in db
 
 
+def clear_context_data_bucket(context: Context) -> None:
+    db = get_data_bucket_from_context(context)
+    db.clear()
+
+
 def filter_tags_with_prefix(tags: Iterable[Tag], /, *, prefix: str, trim_prefix: bool) -> set[Tag]:
     return {
         tag.removeprefix(prefix) if trim_prefix else tag
