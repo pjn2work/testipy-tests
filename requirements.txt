@@ -2,3 +2,4 @@ behave>=1.2
 testipy==0.10.3
 PyYAML>=6.0.1
 assertpy>=1.1
+pandas>=2.1.4

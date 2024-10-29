@@ -4,6 +4,7 @@ from behave import given, step
 from behave.runner import Context
 
 from behave_tests.features.common import get_logger, save_into_context, get_from_context, clear_context_data_bucket
+from behave_tests.resources import read_resources_data_file
 from common.utils.datetimes import now
 
 
@@ -29,6 +30,13 @@ def save_into_context_data(context: Context, dtype: str, key: str):
     else:
         raise ValueError(f"Unsupported dtype: {dtype}. Only {accepted_types}")
 
+    save_into_context(context, key, data)
+
+
+@step("read resources/{filepath} file as {dtype} into {key}")
+def read_resources_file_into_context(context: Context, filepath: str, dtype: str, key: str):
+    data = read_resources_data_file(filepath, dtype)
+    context.logging.info(f"File resources/{filepath} has {len(data)} rows")
     save_into_context(context, key, data)
 
 

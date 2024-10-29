@@ -72,3 +72,11 @@ Feature: Showing off behave (tutorial01)
       | birth       | datetime    |
       | date1       | date        |
       | time1       | integer     |
+
+
+  Scenario: Read resources file
+    When read resources/demo.csv file as csv into file1
+    Then data from file1, must have the following types
+      | column_name | column_type |
+      | Industry    | string      |
+      | Year        | integer     |
