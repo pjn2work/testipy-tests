@@ -1,6 +1,8 @@
 from behave import when, then
 from behave.runner import Context
 
+from behave_tests.testdata import ENVIRONMENT
+
 
 @when('we implement a test {v}')
 def step_impl2(context: Context, v: str):
@@ -10,7 +12,7 @@ def step_impl2(context: Context, v: str):
 
 @then('behave table test step')
 def step_impl4(context: Context):
-    print("  Table contents")
+    print(f"  Table contents for {ENVIRONMENT}")
     for i, row in enumerate(context.table):
         print("  >>", i, row["column_A"], row["column_B"])
 

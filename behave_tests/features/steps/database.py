@@ -105,6 +105,9 @@ def _get_equivalent_python_type(vartype: str) -> Any:
 def _verify_field_types(context: Context, results_list: list[dict]) -> None:
     expected_column_types = context.table
 
+    if not isinstance(results_list, list):
+        results_list = [results_list]
+
     for row in results_list:
         assert_that(
             row.keys(), "Saved query_results don't have same amount of columns"
