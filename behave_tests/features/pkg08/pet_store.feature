@@ -53,7 +53,7 @@ Feature: PetStore
       """
     When post data to pet store, I receive a 200 status code
     Then I can get the data pet from store, and receive a 200 status code
-    And data from data_response, must have the following types
+    And the body from data response, must have the following types
       | column_name | column_type |
       | id          | integer     |
       | name        | string      |
@@ -74,7 +74,8 @@ Feature: PetStore
 
   Scenario: Create a cat from JSON file
     When read resources/demo_pet.json file as json into file2
-    Then data from file2, must have the following types
+    And post file2 to pet store, I receive a 200 status code
+    Then the body from file2 response, must have the following types
       | column_name | column_type |
       | id          | integer     |
       | name        | string      |
@@ -82,4 +83,14 @@ Feature: PetStore
       | photoUrls   | list        |
       | tags        | list        |
       | status      | string      |
-    And post file2 to pet store, I receive a 200 status code
+    And the headers from file2 response, must have the following types
+      | column_name                   | column_type |
+      | Date                          | string      |
+      | Content-Type                  | string      |
+      | Content-Length                | string      |
+      | Connection                    | string      |
+      | Access-Control-Allow-Origin   | string      |
+      | Access-Control-Allow-Methods  | string      |
+      | Access-Control-Allow-Headers  | string      |
+      | Access-Control-Expose-Headers | string      |
+      | Server                        | string      |

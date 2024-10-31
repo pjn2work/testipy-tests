@@ -14,7 +14,7 @@ Feature: Showing off behave (tutorial01)
 
 
   @my_scenario_tag_01
-    @tc:201750 @tc:201800
+  @tc:201750 @tc:201800
   Scenario Outline: Examples scenario for: <Index> and <Desc>
     When we implement a test 5
     Then behave will test it for us! <Index> and <Desc>
