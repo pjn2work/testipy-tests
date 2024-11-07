@@ -28,7 +28,7 @@ ORIGINAL_ENVIRONMENT_PY = "environment_.py"
 ORIGINAL_STEPS_FOLDER = "steps_"
 BASE_FOLDER = os.path.dirname(__file__)
 TESTIPY_ARGS = f"-tf {BASE_FOLDER} -r web -r-web-port 9204 -rid 1 -r html"
-
+REMOVE_PACKAGE_PREFIX = "behave_tests.features."
 
 class TestipyReporting(metaclass=Singleton):
 
@@ -149,7 +149,7 @@ def get_package_and_suite_by_filename(feature: Feature) -> tuple[str, str, str]:
     """
     filename = feature.filename
 
-    package_name = str(os.path.dirname(filename).replace(os.path.sep, separator_package))
+    package_name = str(os.path.dirname(filename).replace(os.path.sep, separator_package)).removeprefix(REMOVE_PACKAGE_PREFIX)
     filename = os.path.basename(filename)
     suite_name = feature.name
 
