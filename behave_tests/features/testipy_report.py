@@ -27,7 +27,7 @@ from testipy.helpers.data_driven_testing import endTest
 ORIGINAL_ENVIRONMENT_PY = "environment_.py"
 ORIGINAL_STEPS_FOLDER = "steps_"
 BASE_FOLDER = os.path.dirname(__file__)
-TESTIPY_ARGS = f"-tf {BASE_FOLDER} -r web -r-web-port 9204 -rid 1 -r log"
+TESTIPY_ARGS = f"-tf {BASE_FOLDER} -r web -r-web-port 9204 -rid 1 -r html"
 
 
 class TestipyReporting(metaclass=Singleton):
@@ -316,8 +316,8 @@ def end_step(context: Context, step: Step):
             step.exception = None
             step.exc_traceback = None
         else:
-            info = "".join(traceback.format_tb(step.exc_traceback, limit=-2))
             reason_of_state = str(step.exception)
+            info = f"{type(step.exception)} {reason_of_state}\n" + "".join(traceback.format_tb(step.exc_traceback, limit=-2))
             get_rm().test_info(
                 current_test=td,
                 info=f"{step.keyword} {step.name}\n{info}",
