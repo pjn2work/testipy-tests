@@ -307,6 +307,10 @@ def end_scenario(context: Context, scenario: Scenario | ScenarioOutline):
     _close_any_unclosed_tests(context)
 
 
+def start_step(context: Context, step: Step):
+    context.testipy_reason_of_state = "ok"
+
+
 def end_step(context: Context, step: Step):
     td: TestDetails = _testipy_reporting.get_current_test(context)
     if step.exception:
@@ -324,7 +328,7 @@ def end_step(context: Context, step: Step):
                 level="ERROR"
             )
     else:
-        reason_of_state = "ok"
+        reason_of_state = context.testipy_reason_of_state
     get_rm().test_step(
         current_test=td,
         state=_get_status(step.status),

@@ -15,6 +15,7 @@ from behave_tests.features.testipy_report import (
     end_feature,
     start_scenario,
     end_scenario,
+    start_step,
     end_step
 )
 
@@ -54,6 +55,7 @@ def after_scenario(context: Context, scenario: Scenario | ScenarioOutline):
 
 def before_step(context: Context, step: Step):
     context.step = step
+    start_step(context, step)
 
 def after_step(context: Context, step: Step):
     end_step(context, step)

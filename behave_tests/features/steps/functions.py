@@ -47,8 +47,8 @@ def verify_field_types(context: Context, results_list: list[dict]) -> None:
         ).is_length(len(expected_column_types.rows))
 
         for expected_column in expected_column_types:
-            column_name = expected_column["column_name"]
-            expected_types = expected_column["column_type"].split(",")
+            column_name: str = expected_column["column_name"]
+            expected_types: list[str] = expected_column["column_type"].split(",")
 
             assert (
                 column_name in row
@@ -56,8 +56,8 @@ def verify_field_types(context: Context, results_list: list[dict]) -> None:
 
             observed_type = type(row[column_name])
             for expected_type in expected_types:
-                expected_type = _get_equivalent_python_type(expected_type.strip().lower())
-                if expected_type == observed_type:
+                expected_python_type = _get_equivalent_python_type(expected_type.strip().lower())
+                if expected_python_type == observed_type:
                     break
             else:
                 raise ValueError(

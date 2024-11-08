@@ -145,7 +145,7 @@ class DateCompare:
 class DatetimeCompare:
     def __init__(
             self,
-            expected: datetime | date | str,
+            expected: datetime | str,
             dt_min: timedelta | None = None,
             dt_max: timedelta | None = None,
             /, *,
@@ -158,7 +158,7 @@ class DatetimeCompare:
         self.min_dt = dt_min or timedelta(0)
         self.max_dt = dt_max or timedelta(0)
 
-    def _convert_to_datetime(self, datetime_value: datetime | date | str) -> datetime | date:
+    def _convert_to_datetime(self, datetime_value: datetime | str) -> datetime:
         if isinstance(datetime_value, datetime):
             return datetime_value
         if isinstance(datetime_value, str):
