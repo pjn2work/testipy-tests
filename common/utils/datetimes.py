@@ -1,4 +1,5 @@
 from datetime import date, datetime, time, timedelta, timezone, tzinfo
+from time import perf_counter
 from typing import Literal
 from zoneinfo import ZoneInfo
 
@@ -179,3 +180,37 @@ class DatetimeCompare:
         return f"[{self.expected - self.min_dt} .. {self.expected + self.max_dt}]"
 
     __repr__ = __str__
+
+
+class TimeIt:
+
+    def __enter__(self):
+        self.start = perf_counter()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.end = perf_counter()
+
+    def millis(self) -> float:
+        return (self.end - self.start) * 1000
+
+    def seconds(self) -> float:
+        return self.end - self.start
+
+    def minutes(self) -> float:
+        return (self.end - self.start) / 60
+
+    def __str__(self):
+        sec = self.seconds()
+        # < 1 sec
+        if sec < 1.000:
+            return f"{sec*1000:.0f}ms"
+        # < 10 sec
+        if sec < 10.000:
+            return f"{sec:.2f}s"
+
+        hours = int(sec // 3600)
+        minutes = int((sec % 3600) // 60)
+        seconds = int(sec % 60)
+
+        return f"{hours:0>2d}:{minutes:0>2d}:{seconds:0>2d}"
