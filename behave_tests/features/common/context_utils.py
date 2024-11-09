@@ -34,6 +34,10 @@ def clear_context_data_bucket(context: Context) -> None:
     db.clear()
 
 
+def set_step_reason_of_state(context: Context, reason_of_state: str):
+    context.testipy_reason_of_state = reason_of_state
+
+
 def filter_tags_with_prefix(tags: Iterable[Tag], /, *, prefix: str, trim_prefix: bool) -> set[Tag]:
     return {
         tag.removeprefix(prefix) if trim_prefix else tag

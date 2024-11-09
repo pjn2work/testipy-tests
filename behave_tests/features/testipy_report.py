@@ -85,12 +85,13 @@ class TestipyReporting(metaclass=Singleton):
             exc_value=exc_value
         )
 
-    def test_info(self, context: Context, info: str, level: str = "DEBUG", attachment: dict = None, td: TestDetails = None):
+    def test_info(self, context: Context, info: str, level: str = "DEBUG", attachment: dict = None, td: TestDetails = None, true_html = False):
         get_rm().test_info(
             current_test=td or self.get_current_test(context),
             info=info,
             level=level,
-            attachment=attachment
+            attachment=attachment,
+            true_html=true_html
         )
 
     def start_new_package(self, package_name: str, /, *, raise_if_not_found: bool) -> PackageDetails:
