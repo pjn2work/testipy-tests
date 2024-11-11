@@ -2,6 +2,7 @@ from behave import when, then
 from behave.runner import Context
 
 from behave_tests.testdata import ENVIRONMENT
+from behave_tests.features import test_info
 from behave_tests.features.common.context_utils import set_step_reason_of_state
 
 
@@ -23,7 +24,7 @@ def create_plotly(context: Context):
     # Get HTML string of the figure
     fig_html = pio.to_html(fig, full_html=False)
 
-    context.testipy_reporting.test_info(context, fig_html, true_html=True)
+    test_info(context, fig_html, true_html=True)
 
 
 @when('we implement a test {v}')
@@ -43,7 +44,7 @@ def step_impl4(context: Context):
 @then('behave will test it for us! {index:d} and {desc}')
 def step_impl3(context: Context, index: int, desc: str):
     print(f"  >> {index=}, {desc=}, tags={context.scenario.tags}")
-    context.testipy_reporting.test_info(context, f"This test will fail if index >= 5. {index=}")
+    test_info(context, f"This test will fail if index >= 5. {index=}")
     set_step_reason_of_state(context, f"{index} < 5")
 
     assert index<5, f"{index} < 5 failed"

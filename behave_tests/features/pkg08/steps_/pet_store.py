@@ -4,8 +4,8 @@ from requests import Response
 from behave import step, given
 from behave.runner import Context
 
+from behave_tests.features import TestipyStep
 from behave_tests.features.common import get_from_context, save_into_context
-from behave_tests.features.testipy_report import TestipyStep
 from testipy.helpers.handle_assertions import assert_equal_dicts, ExpectedError
 from testipy.helpers import prettify
 

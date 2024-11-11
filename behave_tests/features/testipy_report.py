@@ -120,12 +120,38 @@ class TestipyReporting(metaclass=Singleton):
 _testipy_reporting = TestipyReporting()
 
 
+def test_info(context: Context, info: str, level: str = "DEBUG", attachment: dict = None, td: TestDetails = None, true_html: bool = False):
+    _testipy_reporting.test_info(
+        context=context,
+        info=info,
+        level=level,
+        attachment=attachment,
+        td=td,
+        true_html=true_html
+    )
+
+
+def test_step(context: Context, description: str, reason_of_state: str = "ok", take_screenshot: bool = False, exc_value: BaseException = None, td: TestDetails = None):
+    _testipy_reporting.test_step(
+        context=context,
+        description=description,
+        reason_of_state=reason_of_state,
+        take_screenshot=take_screenshot,
+        exc_value=exc_value,
+        td=td
+    )
+
+
+def set_feature_step_reason_of_state(context: Context, reason_of_state: str):
+    context.testipy_reason_of_state = reason_of_state
+
+
 class TestipyStep(TestStep):
-    def __init__(self, context: Context, description: str, reason_of_state: str = "ok", td: TestDetails = None):
+    def __init__(self, context: Context, description: str, reason_of_state: str = "ok", take_screenshot: bool = False, td: TestDetails = None):
         td = td or _testipy_reporting.get_current_test(context)
         if td is None:
             raise ValueError(f"Cannot execute step without TestDetails")
-        super(TestipyStep, self).__init__(td, description, reason_of_state)
+        super(TestipyStep, self).__init__(td, description, reason_of_state, take_screenshot=take_screenshot)
 
 
 def get_rm(testipy_init_args: str = None) -> ReportManager:
@@ -309,7 +335,7 @@ def end_scenario(context: Context, scenario: Scenario | ScenarioOutline):
 
 
 def start_step(context: Context, step: Step):
-    context.testipy_reason_of_state = "ok"
+    set_feature_step_reason_of_state(context, "ok")
 
 
 def end_step(context: Context, step: Step):

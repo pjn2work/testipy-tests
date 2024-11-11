@@ -1,7 +1,7 @@
 from behave.runner import Context
 from behave.model import Feature, Scenario
 
-from behave_tests.features.testipy_report import TestipyStep
+from behave_tests.features import TestipyStep
 from behave_tests.features.common import get_all_features_tags_with_prefix, get_logger
 
 def before_all(context: Context):
