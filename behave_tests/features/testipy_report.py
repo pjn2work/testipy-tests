@@ -253,7 +253,6 @@ def __get_package_for_feature(context: Context, feature: Feature, feature_packag
     feature_folder_path = os.path.dirname(feature.filename)
     env_folder_path = _get_env_folder_path(feature_folder_path)
     is_new_env = env_folder_path != _testipy_reporting.testipy_env_py.folder_path or _testipy_reporting.get_current_package() is None
-    is_same_folder_feature_vs_env = feature_folder_path == env_folder_path
 
     pd: PackageDetails = _testipy_reporting.start_new_package(feature_package_name, raise_if_not_found=True)
 
@@ -262,9 +261,6 @@ def __get_package_for_feature(context: Context, feature: Feature, feature_packag
         _call_env_before_all(context, env_folder_path)
     else:
         _load_behave_context(context)
-
-    if not is_same_folder_feature_vs_env:
-        _load_steps_from_folder(feature_folder_path)
 
     return pd
 
@@ -278,6 +274,17 @@ def start_feature(context: Context, feature: Feature):
         raise ValueError(f"suite {suite_name} not found!")
 
     context.testipy_current_suite = get_rm().startSuite(pd, sat)
+
+    # load step modules from steps_ folder
+    try:
+        _load_steps_from_folder(os.path.dirname(feature.filename))
+    except Exception as exc:
+        for test_attr in sat.test_method_attr_list:
+            td = start_independent_test(context, test_attr.name)
+            test_step(context, description="load_steps_from_folder", reason_of_state=str(exc), exc_value=exc, td=td)
+            test_info(context, info="".join(traceback.format_tb(exc.__traceback__, limit=-2)), level="ERROR", td=td)
+            end_independent_test(td)
+        raise exc
 
     if context.testipy_env_py_exception is None:
         _call_env_before_feature(context, feature)

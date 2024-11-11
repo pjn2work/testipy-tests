@@ -2,8 +2,7 @@ from behave import when, then
 from behave.runner import Context
 
 from behave_tests.testdata import ENVIRONMENT
-from behave_tests.features import test_info
-from behave_tests.features.common.context_utils import set_step_reason_of_state
+from behave_tests.features import test_info, set_feature_step_reason_of_state
 
 
 def create_plotly(context: Context):
@@ -45,6 +44,6 @@ def step_impl4(context: Context):
 def step_impl3(context: Context, index: int, desc: str):
     print(f"  >> {index=}, {desc=}, tags={context.scenario.tags}")
     test_info(context, f"This test will fail if index >= 5. {index=}")
-    set_step_reason_of_state(context, f"{index} < 5")
+    set_feature_step_reason_of_state(context, f"{index} < 5")
 
     assert index<5, f"{index} < 5 failed"
