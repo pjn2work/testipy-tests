@@ -27,7 +27,7 @@ from testipy.helpers.data_driven_testing import endTest
 ORIGINAL_ENVIRONMENT_PY = "environment_.py"
 ORIGINAL_STEPS_FOLDER = "steps_"
 BASE_FOLDER = os.path.dirname(__file__)
-TESTIPY_ARGS = f"-tf {BASE_FOLDER} -r web3 -r-web-port 9204 -rid 1 -r html"
+TESTIPY_ARGS = f"-tf {BASE_FOLDER} -r web -r-web-port 9204 -rid 1 -r html"
 REMOVE_PACKAGE_PREFIX = "behave_tests.features."
 
 class TestipyReporting(metaclass=Singleton):
