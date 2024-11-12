@@ -4,8 +4,10 @@ from requests import Response
 from behave import step, given
 from behave.runner import Context
 
-from behave_tests.features.testipy_report import TestipyStep
+from behave_tests.features import TestipyStep
+from behave_tests.features.common import get_from_context, save_into_context
 from testipy.helpers.handle_assertions import assert_equal_dicts, ExpectedError
+from testipy.helpers import prettify
 
 
 @given("the base url is {url}")
@@ -13,33 +15,41 @@ def set_base_url(context: Context, url: str):
     context.url = url
 
 
-@step("post data to pet store, I receive a {status_code} status code")
-def post_to_petstore(context: Context, status_code: str):
-    status_code = int(status_code)
+@step("post {key} to pet store, I receive a {status_code:d} status code")
+def post_to_petstore(context: Context, key: str, status_code: int):
+    data = get_from_context(context, key)
+    response = _post_as_dict(context.url, data)
 
-    context.response = _post_as_dict(context.url, context.data)
-    context.logging.info(context.response.text)
-    assert context.response.status_code == status_code, f"Expected {status_code=}, not {context.response.status_code}."
+    log_info = f"Status code: {response.status_code}" + "\nHeaders:\n" + prettify(dict(response.headers)) + "\nBody:\n" + prettify(response.json())
+    context.logging.info(log_info)
+
+    save_into_context(context, key + "_response", response)
+    assert response.status_code == status_code, f"Expected {status_code=}, not {response.status_code}."
 
     if 200 <= status_code <= 299:
-        received = context.response.json()
-        assert_equal_dicts(context.data, received)
+        received = response.json()
+        assert_equal_dicts(data, received)
     else:
         raise ExpectedError(f"designed to fail with {status_code}")
 
 
-@step("I can get the same pet from store, and receive a {status_code} status code")
-def get_from_petstore(context: Context, status_code: str):
-    status_code = int(status_code)
-    url = context.url + str(context.data["id"])
+@step("I can get the {key} pet from store, and receive a {status_code:d} status code")
+def get_from_petstore(context: Context, key: str, status_code: int):
+    data = get_from_context(context, key)
+    url = context.url + str(data["id"])
 
     with TestipyStep(context, f"GET {url}"):
-        context.response = _get_as_dict(url)
-        context.logging.info(context.response.text)
-        assert context.response.status_code == status_code, f"Expected {status_code=}, not {context.response.status_code}."
+        response = _get_as_dict(url)
+
+        log_info = f"Status code: {response.status_code}" + "\nHeaders:\n" + prettify(
+            dict(response.headers)) + "\nBody:\n" + prettify(response.json())
+        context.logging.info(log_info)
+
+        save_into_context(context, key + "_response", response)
+        assert response.status_code == status_code, f"Expected {status_code=}, not {response.status_code}."
 
     if 200 <= status_code <= 299:
-        assert_equal_dicts(context.data, context.response.json())
+        assert_equal_dicts(data, response.json())
 
 
 

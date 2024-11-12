@@ -1,4 +1,5 @@
 @my_feature_tag_07
+@setup.db:cli3
 Feature: Tutorial07
 
     feature description

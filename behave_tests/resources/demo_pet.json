@@ -1,0 +1,18 @@
+{
+  "id": 17,
+  "name": "Julieta",
+  "category": {
+    "id": 2,
+    "name": "Cats"
+  },
+  "photoUrls": [
+    ""
+  ],
+  "tags": [
+    {
+      "id": 0,
+      "name": "normal"
+    }
+  ],
+  "status": "available"
+}
