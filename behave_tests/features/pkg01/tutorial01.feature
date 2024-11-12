@@ -84,3 +84,7 @@ Feature: Showing off behave (tutorial01)
       | column_name | column_type |
       | Industry    | string      |
       | Year        | integer     |
+
+
+  Scenario: Test with undefined steps - Fail
+    When I have Undefined step

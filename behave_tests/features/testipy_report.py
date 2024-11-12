@@ -27,7 +27,7 @@ from testipy.helpers.data_driven_testing import endTest
 ORIGINAL_ENVIRONMENT_PY = "environment_.py"
 ORIGINAL_STEPS_FOLDER = "steps_"
 BASE_FOLDER = os.path.dirname(__file__)
-TESTIPY_ARGS = f"-tf {BASE_FOLDER} -r web -r-web-port 9204 -rid 1 -r html"
+TESTIPY_ARGS = f"-tf {BASE_FOLDER} -r web3 -r-web-port 9204 -rid 1 -r html"
 REMOVE_PACKAGE_PREFIX = "behave_tests.features."
 
 class TestipyReporting(metaclass=Singleton):
@@ -330,6 +330,8 @@ def end_scenario(context: Context, scenario: Scenario | ScenarioOutline):
     current_test: TestDetails = _testipy_reporting.get_current_test(context)
 
     _log_messages_to_test(context, current_test)
+    _check_for_undefined_steps(scenario, current_test)
+
     if current_test.get_test_step_counters().get_last_state():
         endTest(get_rm(), current_test)
     else:
@@ -564,6 +566,13 @@ def _close_any_unclosed_tests(context: Context):
         for test in tests:
             endTest(get_rm(), test, end_reason="auto-closed")
 
+def _check_for_undefined_steps(scenario: Scenario, current_test: TestDetails):
+    testipy_steps: list[str] = [lap.description for lap in current_test.get_test_step_counters().get_timed_laps()]
+    behave_steps: list[str] = [f"{step.keyword} {step.name}" for step in scenario.steps]
+    for step in behave_steps:
+        if step not in testipy_steps:
+            current_test.test_step(STATE_FAILED, "Undefined step", step)
+            break
 
 def _get_suite_attr_by_name(package_attr: PackageAttr, suite_name: str, suite_filename: str = "") -> SuiteAttr:
     suite_attr: SuiteAttr = package_attr.get_suite_by_name(suite_name)
