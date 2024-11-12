@@ -3,5 +3,8 @@ testipy==0.10.5
 PyYAML>=6.0.1
 assertpy>=1.1
 pandas>=2.1.4
+behave-pandas>=0.5
 python-decouple>=3.8
 plotly>=5.24
+kaleido>=0.2
+matplotlib>=3.9

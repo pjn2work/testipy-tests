@@ -5,12 +5,16 @@ Feature: Showing off behave (tutorial01)
 
 
   @tc:200555
-  Scenario: Table test
-    Then behave table test step
-      | column_A | column_B |
-      | field 1  | string   |
-      | field 2  | integer  |
-      | field 3  | float    |
+  Scenario: Table test with matplotlib and plotly graphs
+    Then plot table having header at 1 row and index at 1 column
+      | int      | int   | int      |
+      | velocity | price | discount |
+      | 10       | 10    | 1        |
+      | 20       | 15    | 5        |
+      | 30       | 18    | 8        |
+      | 50       | 30    | 3        |
+      | 80       | 40    | 4        |
+      | 130      | 45    | 5        |
 
 
   @my_scenario_tag_01
