@@ -201,6 +201,7 @@ def multi_plot_plotly(
             )
 
     # create graph
+    x_label = df.index.name if df.index.name else "index"
     fig.update_layout(
         title_text=title,
         plot_bgcolor='white',
@@ -210,7 +211,7 @@ def multi_plot_plotly(
         legend=dict(orientation="h", yanchor="top"),
 
         xaxis=dict(
-            title=None, tickformat='%H:%M:%S', automargin="width", range=xlim,
+            title=dict(text=x_label, standoff=5), tickformat='%H:%M:%S', automargin="width", range=xlim,
             tickangle=0, domain=[0.0, 0.7], minor_ticklen=1, tickmode="auto", nticks=22,
             showline=False, showticklabels=True,
             showgrid=True, gridwidth=1, griddash="4px", gridcolor="#DDD", minor_gridwidth=1
