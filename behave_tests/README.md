@@ -42,5 +42,8 @@ behave -D testipy="-rid 5 -r web -r-web-port 9204 -r junit -r html" behave_tests
 - `-r html` will produce an HTML file having all tests results, logging and summary
 - `-r junit` will produce a junit xml file
 
+# Report example
+![HTML report file](html_report.png)
+
 # TestiPy homepage
 Here you can check out the [TestiPy](https://github.com/pjn2work/TestiPy) Framework

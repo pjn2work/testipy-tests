@@ -8,21 +8,14 @@ def get_current_time() -> datetime:
 
 
 def get_token_for(resource_id: str) -> str:
-    file_object = os.popen(  # noqa: S605
-        f"az account get-access-token --resource {resource_id} --query accessToken -otsv"
-    )
+    file_object = os.popen(f"az account get-access-token --resource {resource_id} --query accessToken -otsv")
     token_value = file_object.read().replace("\n", "")
     file_object.close()
-
     return token_value
 
 
 class DatabricksTokenProvider:
-    # Ask for a new token after 57 mins. It is important that this value is not too low. Otherwise the az
-    # command will just give us the previous (cached on disk) token which will soon expire. Asking for a
-    # new token at this point results in a new token being issued and it will last for around an hour. Of course
-    # specifying a value greater than 60 mins the token in use will expire and could be used unsuccessfully
-    EXPIRE_AFTER: int = 57
+    EXPIRE_AFTER_MINS: int = 57
 
     _generated_at: datetime = None
 
@@ -60,10 +53,8 @@ class DatabricksTokenProvider:
 
     def is_expiring(self) -> bool:
         if self._pipeline_execution:
-            minutes_diff = (
-                datetime.now(timezone.utc) - self._get_generated_at()
-            ).total_seconds() / 60.0
-            return minutes_diff > self.EXPIRE_AFTER
+            minutes_diff = (get_current_time() - self._get_generated_at()).total_seconds() / 60.0
+            return minutes_diff > self.EXPIRE_AFTER_MINS
         else:
             return False
 
