@@ -420,7 +420,7 @@ def _call_env_before_all(context: Context, env_folder_path: str):
     clear_context_data_bucket(context)
     context.testipy_env_py_exception = None
     _testipy_reporting.testipy_env_py.folder_path = env_folder_path
-    env_package_name = env_folder_path.replace(os.path.sep, separator_package)
+    env_package_name = env_folder_path.replace(os.path.sep, separator_package).removeprefix(REMOVE_PACKAGE_PREFIX)
 
     if env_folder_path:
         try:
@@ -567,7 +567,12 @@ def _close_any_unclosed_tests(context: Context):
             endTest(get_rm(), test, end_reason="auto-closed")
 
 def _check_for_undefined_steps(scenario: Scenario, current_test: TestDetails):
-    testipy_steps: list[str] = [lap.description for lap in current_test.get_test_step_counters().get_timed_laps()]
+    testipy_steps = current_test.get_test_step_counters().get_timed_laps()
+    for step in testipy_steps:
+        if step.state != STATE_PASSED:
+            return
+
+    testipy_steps = [step.description for step in testipy_steps]
     behave_steps: list[str] = [f"{step.keyword} {step.name}" for step in scenario.steps]
     for step in behave_steps:
         if step not in testipy_steps:

@@ -88,3 +88,4 @@ Feature: Showing off behave (tutorial01)
 
   Scenario: Test with undefined steps - Fail
     When I have Undefined step
+    Then do nothing
