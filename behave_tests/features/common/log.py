@@ -41,7 +41,7 @@ class TestiPyLogHandler(logging.Handler):
 
 def set_up_logging(context: Context):
     # Configure logging
-    context.logging = _logger
+    context.log = _logger
     context.config.setup_logging(
         level=logging.DEBUG,
         format="%(asctime)s - %(name)s - %(filename)s:%(lineno)d - %(funcName)s - %(message)s",
@@ -57,7 +57,7 @@ def set_up_logging(context: Context):
     testipy_log_handler.setLevel(logging.DEBUG)
     formatter = CustomFormatter("%(behavestep)s%(relativepathname)s:%(lineno)d - %(funcName)s\n%(message)s")
     testipy_log_handler.setFormatter(formatter)
-    context.logging.addHandler(testipy_log_handler)
+    context.log.addHandler(testipy_log_handler)
 
     # Turn down logging
     other_loggers = [
@@ -71,4 +71,4 @@ def set_up_logging(context: Context):
 
 def get_logger(context: Context):
     # return _logger
-    return context.logging
+    return context.log

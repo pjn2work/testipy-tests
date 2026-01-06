@@ -37,7 +37,7 @@ def save_into_context_data(context: Context, dtype: str, key: str):
 @step("read resources/{filepath} file as {dtype} into {key}")
 def read_resources_file_into_context(context: Context, filepath: str, dtype: str, key: str):
     data = read_resources_data_file(filepath, dtype)
-    context.logging.info(f"File resources/{filepath} has {len(data)} rows")
+    context.log.info(f"File resources/{filepath} has {len(data)} rows")
     save_into_context(context, key, data)
 
 

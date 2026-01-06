@@ -21,7 +21,7 @@ def post_to_petstore(context: Context, key: str, status_code: int):
     response = _post_as_dict(context.url, data)
 
     log_info = f"Status code: {response.status_code}" + "\nHeaders:\n" + prettify(dict(response.headers)) + "\nBody:\n" + prettify(response.json())
-    context.logging.info(log_info)
+    context.log.info(log_info)
 
     save_into_context(context, key + "_response", response)
     assert response.status_code == status_code, f"Expected {status_code=}, not {response.status_code}."
@@ -43,7 +43,7 @@ def get_from_petstore(context: Context, key: str, status_code: int):
 
         log_info = f"Status code: {response.status_code}" + "\nHeaders:\n" + prettify(
             dict(response.headers)) + "\nBody:\n" + prettify(response.json())
-        context.logging.info(log_info)
+        context.log.info(log_info)
 
         save_into_context(context, key + "_response", response)
         assert response.status_code == status_code, f"Expected {status_code=}, not {response.status_code}."

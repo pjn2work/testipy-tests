@@ -1,0 +1,39 @@
+trigger:
+  - features/your_current_branch
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  currentDate: $[ format('{0:yyyy}{0:MM}{0:dd}', pipeline.startTime) ]
+
+steps:
+  - script: |
+      python -m pip install --upgrade pip
+      pip install -r requirements.txt
+      python -V
+      behave -D testipy="-pn ACME -rid 1 -r junit -r html -rf ./results" features --no-capture --no-capture-stderr
+    displayName: "Run Behave Tests"
+
+  - task: PublishTestResults@2
+    displayName: 'Publish JUnit Report'
+    condition: succeededOrFailed()
+    inputs:
+      testResultsFormat: 'JUnit'
+      testResultsFiles: '**/report.xml'
+
+  - task: CmdLine@2
+    displayName: 'List results'
+    inputs:
+      script: |
+        echo 'Current folder: $(System.DefaultWorkingDirectory)'
+        echo 'Current date:   $(currentDate)'
+        ls -halR results/
+
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish HTML Report'
+    condition: succeededOrFailed()
+    inputs:
+      pathToPublish: './results/ACME/ACME_$(currentDate)_000001/'
+      artifactName: 'results'
+      publishLocation: 'Container'
